@@ -29,7 +29,6 @@ const els = {
   card:         document.querySelector('.now'),
   stalePill:    document.getElementById('stale-pill'),
   mapSwell:     document.getElementById('map-swell'),
-  mapTide:      document.getElementById('map-tide'),
 };
 
 const STALE_THRESHOLD_MS = 2 * 60 * 60 * 1000;  // 2 hours
@@ -82,15 +81,13 @@ function render(data) {
 
   els.tide.textContent = formatTide(tide);
 
-  // === Live map scribbles (notebook chart, bottom margin + SW label) ===
+  // === Live map SW label (notebook chart) ===
   // Same source-precedence as the wave picker, just for direction:
   //   buoy.mean_wave_direction_deg  →  cardinal()   (sensor truth)
   //   marine.wave_direction_deg     →  cardinal()   (model fallback)
   //   else                          →  keep the static "SW" placeholder
   const dir = pickWaveDirection(r, marine);
   if (dir != null) els.mapSwell.textContent = cardinal(dir);
-  const mapTide = formatMapTide(tide);
-  if (mapTide != null) els.mapTide.textContent = mapTide;
 
   // Spot identity now lives in the now-map illustration; no text pill.
   els.updated.textContent = r.observed_at_utc
@@ -224,20 +221,6 @@ function pickWaveDirection(buoy, marine) {
   if (buoy && buoy.mean_wave_direction_deg != null) return buoy.mean_wave_direction_deg;
   if (marine && marine.wave_direction_deg != null) return marine.wave_direction_deg;
   return null;
-}
-
-// Compact tide string for the map's bottom margin scribble.
-// Format: "tide <symbol> <kind> @ HH:MM" where symbol is ↑/↓/~ for
-// rising/falling/slack. Returns null if no tide block — caller keeps
-// the static placeholder text.
-function formatMapTide(t) {
-  if (!t || !t.next_event || !t.next_event.at_utc) return null;
-  const sym = t.trend === 'rising' ? '↑' : t.trend === 'falling' ? '↓' : '~';
-  const d = new Date(t.next_event.at_utc);
-  if (isNaN(d.getTime())) return null;
-  const hh = String(d.getUTCHours()).padStart(2, '0');
-  const mm = String(d.getUTCMinutes()).padStart(2, '0');
-  return `tide ${sym} ${t.next_event.kind} @ ${hh}:${mm}`;
 }
 
 function setStatus(msg) {
