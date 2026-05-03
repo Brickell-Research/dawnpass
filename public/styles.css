@@ -70,6 +70,7 @@ h1 {
 }
 
 .now[data-stale] .metric-value,
+.now[data-stale] .metric-tag,
 .now[data-stale] .tide-value,
 .now[data-stale] .now-wave,
 .now[data-stale] .wave-compass {
@@ -123,6 +124,20 @@ h1 {
   color: #E0FFFF;
   font-size: 1.05em;
 }
+
+.metric-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72em;
+  font-style: italic;
+  color: #7d8793;
+  letter-spacing: 0.04em;
+  margin-top: 0.05rem;
+  min-height: 1em; /* reserve space so layout doesn't jump when populated */
+}
+
+.metric-tag[data-quality="offshore"]  { color: #00CED1; }
+.metric-tag[data-quality="onshore"]   { color: #c08842; }
+.metric-tag[data-quality="sideshore"] { color: #7d8793; }
 
 .tide-row {
   display: flex;
@@ -233,27 +248,30 @@ h1 {
 
 .notes-list {
   list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
   font-size: 0.82em;
   color: #c8d4dc;
 }
 
+/* Each row is positioned (not flex) so the text + inline em phrases flow
+   as one continuous paragraph. The dot sits absolutely-positioned to the
+   left, vertically aligned to the first line. */
 .notes-list li {
-  display: flex;
-  align-items: baseline;
-  gap: 0.6rem;
-  line-height: 1.5;
+  position: relative;
+  padding-left: 1.1rem;
+  line-height: 1.55;
+  margin-bottom: 0.5rem;
 }
+
+.notes-list li:last-child { margin-bottom: 0; }
 
 .notes-list li::before {
   content: '';
-  flex-shrink: 0;
+  position: absolute;
+  left: 0;
+  top: 0.55em;
   width: 0.5rem;
   height: 0.5rem;
   border-radius: 50%;
-  margin-top: 0.45em;
 }
 
 .notes-list strong {

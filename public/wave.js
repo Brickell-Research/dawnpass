@@ -32,7 +32,13 @@ const els = {
   mapSwellArrows:  document.getElementById('map-swell-arrows'),
   mapWind:         document.getElementById('map-wind'),
   mapWindArrow:    document.getElementById('map-wind-arrow'),
+  windTag:         document.getElementById('m-wind-tag'),
 };
+
+// Beach orientation for wind-quality classification. PAG faces west, so
+// the beach normal (perpendicular pointing to open water) is 270°. Moves
+// to spot config when spots/<spot>.json lands.
+const PAG_BEACH_NORMAL_DEG = 270;
 
 // Map directional indicator constants. Arrows point TOWARD the source
 // (FROM direction) — i.e. the same bearing the cardinal label names. So
@@ -94,6 +100,16 @@ function render(data) {
     : '—';
 
   els.wind.textContent = formatWind(r.wind_speed_ms, r.wind_direction_deg);
+
+  // Wind quality badge — offshore (clean) / onshore (blown out) / sideshore.
+  if (r.wind_direction_deg != null) {
+    const q = windQuality(r.wind_direction_deg, PAG_BEACH_NORMAL_DEG);
+    els.windTag.textContent = q;
+    els.windTag.setAttribute('data-quality', q);
+  } else {
+    els.windTag.textContent = '';
+    els.windTag.removeAttribute('data-quality');
+  }
 
   renderTide(els.tide, tide);
 
@@ -244,6 +260,24 @@ function pickWaveDirection(buoy, marine) {
   if (buoy && buoy.mean_wave_direction_deg != null) return buoy.mean_wave_direction_deg;
   if (marine && marine.wave_direction_deg != null) return marine.wave_direction_deg;
   return null;
+}
+
+// Classify a wind FROM-bearing relative to the spot's beach normal as
+// offshore / onshore / sideshore. The beach normal is the perpendicular
+// pointing OUT to open water — for PAG (west-facing), 270°. Wind from
+// the same bearing as the normal (e.g. wind FROM the W onto a W-facing
+// beach) is onshore; wind from the opposite (FROM the E) is offshore.
+//
+// Threshold is ±45° around each axis: ≤45° from the offshore direction →
+// 'offshore'; ≥135° from offshore → 'onshore'; otherwise 'sideshore'.
+function windQuality(fromDeg, beachNormalDeg) {
+  const offshoreDeg = (beachNormalDeg + 180) % 360;
+  // Signed angular distance from offshore direction, normalised to [-180, +180].
+  const diff = ((fromDeg - offshoreDeg + 540) % 360) - 180;
+  const abs = Math.abs(diff);
+  if (abs <= 45)  return 'offshore';
+  if (abs >= 135) return 'onshore';
+  return 'sideshore';
 }
 
 // Rotate a map arrow group so it points TOWARD the source — `fromDeg` is
