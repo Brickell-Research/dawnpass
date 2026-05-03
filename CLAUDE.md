@@ -34,3 +34,12 @@ Bursts of "implement everything in one shot" are hard to review and hard to roll
 - Static site: `public/index.html` + `public/styles.css`. No inline `<style>`. CSS lives in its own file.
 - Data flow (current): `gleam run` → writes `public/data/latest.json` → page fetches and renders.
 - Hard rules from the project memory: no Surfline scraping; disable audio on any future cameras (FL § 934.03); design for hurricane replaceability, not survivability.
+
+## Verifying the deployed site (Playwright MCP)
+
+A Playwright MCP server is wired into `.mcp.json` so Claude can drive a real headless browser against `dawnpass.brickellresearch.org` after each push — accessibility snapshots, console messages, screenshots when needed.
+
+- **Fresh-machine setup:** `npx @playwright/mcp install-browser chrome-for-testing`. (The MCP ships its own browser version — do NOT use `npx playwright install chromium`; that downloads a separate, unused binary.)
+- **Activation:** restart Claude Code in this repo and approve the `playwright` server when prompted (project-scoped MCPs require explicit trust the first time).
+- **Default mode:** headless + isolated + accessibility-tree snapshots. Reserve `browser_take_screenshot` for visual regressions; text snapshots are far cheaper.
+- **Run artifacts** land in `.playwright-mcp/` (gitignored).

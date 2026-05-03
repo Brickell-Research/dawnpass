@@ -19,3 +19,6 @@ erl_crash.dump
 *.scratch
 .vercel
 .env*.local
+
+# Playwright MCP run artifacts (snapshots, console logs)
+.playwright-mcp/
