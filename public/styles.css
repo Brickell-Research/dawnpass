@@ -66,15 +66,15 @@ h1 {
 }
 
 .now-score-value {
-  color: #E0FFFF;
-  font-size: 1em;
-  font-weight: 600;
+  color: #7d8793;
+  font-size: 0.85em;
+  font-weight: 400;
 }
 
 .now-score-value::after {
   content: "/10";
-  color: #E0FFFF; /* full match with the numerator — same font, weight, size, colour */
-  font-weight: 600; /* explicit; ::after inheritance is reliable, but be loud */
+  color: #7d8793;
+  font-weight: 400;
 }
 
 .now-score-verdict {
@@ -455,9 +455,10 @@ h1 {
   color: #E0FFFF;
 }
 
-.notes-cyan::before { background: #00CED1; }
-.notes-pink::before { background: #FF1493; }
-.notes-tide::before { background: #7d8793; }
+.notes-cyan::before  { background: #00CED1; }
+.notes-pink::before  { background: #FF1493; }
+.notes-tide::before  { background: #7d8793; }
+.notes-amber::before { background: #c08842; }
 
 .status {
   font-family: 'JetBrains Mono', monospace;
