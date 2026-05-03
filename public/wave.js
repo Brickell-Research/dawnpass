@@ -5,7 +5,8 @@
 // SVG sine wave whose amplitude tracks Hs and wavelength tracks Tp.
 //
 // Degrades gracefully: missing fields render "—"; missing data file
-// shows a status hint; missing wave/period falls back to an idle ripple.
+// shows a status hint; missing wave/period switches the animation into a
+// slow amplitude breath ("the buoy is silent but we're listening").
 
 const KNOTS_PER_MS = 1.94384;
 const FEET_PER_M = 3.28084;
@@ -20,9 +21,12 @@ const els = {
 };
 
 // Wave animation state. Updated by render() when fresh data lands.
+// `period_s` switches the motion mode: number → step-tick at ocean speed,
+// null → smooth amplitude breath (the "buoy is silent but we're listening" state).
 const wave = {
-  amplitude: 4,    // viewBox px; idle ripple by default
+  amplitude: 4,    // viewBox px
   wavelength: 200, // viewBox px
+  period_s: null,  // real ocean period; drives step-tick rate
   phase: 0,
 };
 
@@ -62,10 +66,14 @@ function render(data) {
   if (r.wave_height_m != null && r.dominant_period_s != null) {
     wave.amplitude  = clamp(r.wave_height_m * 20, 5, 40);
     wave.wavelength = clamp(r.dominant_period_s * 30, 60, 400);
+    wave.period_s   = r.dominant_period_s;
   } else {
-    wave.amplitude  = 4;
     wave.wavelength = 200;
+    wave.period_s   = null;
+    // amplitude is owned by the breath loop in this mode; don't fight it
   }
+
+  startMotion();
 }
 
 function setStatus(msg) {
@@ -97,10 +105,48 @@ function clamp(v, lo, hi) {
   return Math.max(lo, Math.min(hi, v));
 }
 
-function tick() {
-  wave.phase += 0.04;
-  drawWave();
-  requestAnimationFrame(tick);
+// === Motion ===
+//
+// Two modes, picked by render() via wave.period_s:
+//   step-tick — discrete 1Hz phase advance, one full wavelength per Tp seconds.
+//               The wave noticeably "ticks" forward at the real ocean rhythm.
+//   breath    — smooth amplitude oscillation, no phase drift. Used when the
+//               buoy is silent on wave fields. Reads as quietly alive.
+// startMotion() is idempotent: render() calls it on every data load.
+
+const STEP_HZ = 1;
+const BREATH_PERIOD_S = 10;
+const BREATH_AMP_MIN = 4;
+const BREATH_AMP_MAX = 7;
+
+let stepIntervalId = null;
+let breathRafId = null;
+
+function startMotion() {
+  stopMotion();
+  if (wave.period_s != null) {
+    drawWave();
+    stepIntervalId = setInterval(() => {
+      wave.phase += (2 * Math.PI) / (wave.period_s * STEP_HZ);
+      drawWave();
+    }, 1000 / STEP_HZ);
+  } else {
+    const origin = performance.now();
+    const loop = (now) => {
+      const t = (now - origin) / 1000;
+      const mid = (BREATH_AMP_MIN + BREATH_AMP_MAX) / 2;
+      const swing = (BREATH_AMP_MAX - BREATH_AMP_MIN) / 2;
+      wave.amplitude = mid + swing * Math.sin((2 * Math.PI * t) / BREATH_PERIOD_S);
+      drawWave();
+      breathRafId = requestAnimationFrame(loop);
+    };
+    breathRafId = requestAnimationFrame(loop);
+  }
+}
+
+function stopMotion() {
+  if (stepIntervalId) { clearInterval(stepIntervalId); stepIntervalId = null; }
+  if (breathRafId)    { cancelAnimationFrame(breathRafId); breathRafId = null; }
 }
 
 function drawWave() {
@@ -118,4 +164,4 @@ function drawWave() {
 }
 
 load();
-tick();
+startMotion();
