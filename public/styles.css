@@ -78,7 +78,9 @@ h1 {
 }
 
 .now[data-stale] .metric-value,
-.now[data-stale] .tide-value {
+.now[data-stale] .tide-value,
+.now[data-stale] .now-wave,
+.now[data-stale] .wave-legend {
   opacity: 0.5;
 }
 
@@ -130,6 +132,31 @@ h1 {
   color: #E0FFFF;
   font-size: 0.95em;
 }
+
+.wave-legend {
+  display: flex;
+  gap: 1.2rem;
+  margin-bottom: 0.4rem;
+  list-style: none;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7em;
+  letter-spacing: 0.06em;
+  color: #7d8793;
+}
+
+.legend-item { display: inline-flex; align-items: center; }
+
+.legend-item::before {
+  content: '';
+  display: inline-block;
+  width: 0.9rem;
+  margin-right: 0.4rem;
+  border-radius: 1px;
+}
+
+.legend-swell::before { background: #FF1493;                   height: 2.5px; }
+.legend-mean::before  { background: #00CED1;                   height: 1.5px; }
+.legend-chop::before  { background: rgba(255, 255, 255, 0.5); height: 1px;   }
 
 .now-wave {
   display: block;
