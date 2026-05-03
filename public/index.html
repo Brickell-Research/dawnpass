@@ -18,11 +18,40 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css">
+  <script src="/wave.js" defer></script>
 </head>
 <body>
   <main>
     <h1>dawnpass</h1>
     <p class="tagline">the watch is up.</p>
+
+    <section class="now" aria-label="current conditions">
+      <header class="now-header">
+        <h2 class="now-title">now</h2>
+        <span class="now-source" id="now-source">—</span>
+      </header>
+
+      <div class="now-grid">
+        <div class="metric">
+          <span class="metric-label">wave</span>
+          <span class="metric-value" id="m-wave">—</span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">period</span>
+          <span class="metric-value" id="m-period">—</span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">wind</span>
+          <span class="metric-value" id="m-wind">—</span>
+        </div>
+      </div>
+
+      <svg class="now-wave" viewBox="0 0 800 100" preserveAspectRatio="none" aria-hidden="true">
+        <path id="wave-path" d="" fill="none" stroke="#00CED1" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+
+      <p class="now-updated" id="now-updated">awaiting data…</p>
+    </section>
 
     <p class="status">v0 · pre-release · forecast logic en route</p>
   </main>
