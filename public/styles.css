@@ -135,28 +135,34 @@ h1 {
 
 .wave-legend {
   display: flex;
-  gap: 1.2rem;
-  margin-bottom: 0.4rem;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-bottom: 0.6rem;
   list-style: none;
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.7em;
-  letter-spacing: 0.06em;
-  color: #7d8793;
+  letter-spacing: 0.04em;
 }
 
-.legend-item { display: inline-flex; align-items: center; }
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
 
 .legend-item::before {
   content: '';
-  display: inline-block;
+  flex-shrink: 0;
   width: 0.9rem;
-  margin-right: 0.4rem;
   border-radius: 1px;
 }
 
 .legend-swell::before { background: #FF1493;                   height: 2.5px; }
 .legend-mean::before  { background: #00CED1;                   height: 1.5px; }
 .legend-chop::before  { background: rgba(255, 255, 255, 0.5); height: 1px;   }
+
+.legend-name { color: #c8d4dc; min-width: 3em; }
+.legend-desc { color: #7d8793; }
 
 .now-wave {
   display: block;
