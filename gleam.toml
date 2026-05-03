@@ -1,0 +1,18 @@
+name = "dawnpass"
+version = "0.1.0"
+target = "erlang"
+
+description = "Surf forecast for the Pinellas Gulf longboard breaks. A Brickell Research project."
+
+# Fill in once the GitHub remote is set up.
+# repository = { type = "github", user = "...", repo = "dawnpass" }
+
+links = [
+  { title = "Brickell Research", href = "https://brickellresearch.org" },
+]
+
+[dependencies]
+gleam_stdlib = ">= 0.44.0 and < 2.0.0"
+
+[dev-dependencies]
+gleeunit = ">= 1.0.0 and < 2.0.0"

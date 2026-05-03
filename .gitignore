@@ -2,3 +2,18 @@
 *.ez
 /build
 erl_crash.dump
+
+# macOS
+.DS_Store
+
+# Editors
+.idea/
+.vscode/
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Local-only scratch (not the bot-committed data/ or public/ dirs)
+*.scratch
