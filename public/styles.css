@@ -72,7 +72,6 @@ h1 {
 .now[data-stale] .metric-value,
 .now[data-stale] .tide-value,
 .now[data-stale] .now-wave,
-.now[data-stale] .wave-legend,
 .now[data-stale] .wave-compass {
   opacity: 0.5;
 }
@@ -149,37 +148,6 @@ h1 {
 }
 
 .tide-chunk { display: inline-block; white-space: nowrap; }
-
-.wave-legend {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-  margin-bottom: 0.6rem;
-  list-style: none;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.7em;
-  letter-spacing: 0.04em;
-}
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-}
-
-.legend-item::before {
-  content: '';
-  flex-shrink: 0;
-  width: 0.9rem;
-  border-radius: 1px;
-}
-
-.legend-swell::before { background: #FF1493;                   height: 2.5px; }
-.legend-mean::before  { background: #00CED1;                   height: 1.5px; }
-.legend-chop::before  { background: rgba(255, 255, 255, 0.4); height: 0.75px; }
-
-.legend-name { color: #c8d4dc; min-width: 3em; }
-.legend-desc { color: #7d8793; }
 
 .wave-frame {
   position: relative;
