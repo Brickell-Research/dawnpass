@@ -1,0 +1,25 @@
+public/wave.js
+  578f1016a6fb90d1 82,260-276
+public/styles.css
+  578f1016a6fb90d1 152-153
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "08ac73604689bd1265378329c6e672ca75374731",
+  "prompts": {
+    "578f1016a6fb90d1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "dc41a10a-5539-4849-9e14-221fb613fdae",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "robertDurst",
+      "messages": [],
+      "total_additions": 20,
+      "total_deletions": 8,
+      "accepted_lines": 20,
+      "overriden_lines": 0
+    }
+  }
+}
