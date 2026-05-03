@@ -1,14 +1,15 @@
 // dawnpass · client-side renderer for /data/latest.json
 //
-// Reads the most recent buoy + marine + tide readings from the shared JSON
-// file the Gleam ingest writes, populates the Now card, and renders a
-// three-component animated SVG:
-//   dominant swell (cyan)    — Hs + Tp
-//   mean sea (white@0.4)     — Hs + Tm   (collapses onto swell when Tm absent)
-//   wind chop (pink)         — wind_speed_ms (period is a fixed 2s)
+// Reads the buoy + tide + marine + pre-computed wave block from the shared
+// JSON the Gleam ingest writes, populates the Now card, and animates a
+// three-component SVG (cyan swell + white mean + pink chop).
+//
+// The wave-layer math (source-precedence, clamps, Tm fallback, chop wind
+// threshold) lives in src/dawnpass/wave_spec.gleam — this file is purely
+// a renderer. The JSON shape it expects is documented in wave_spec.encode.
 //
 // Degrades gracefully: missing fields render "—"; missing data file shows a
-// status hint; if all wave fields are null, only the mean layer runs as a
+// status hint; if the wave block is silent, only the mean layer runs as a
 // slow breath + drift ("the buoy is silent but we're listening").
 
 const KNOTS_PER_MS = 1.94384;
@@ -86,16 +87,15 @@ function render(data) {
   const r      = buoyKey   ? data[buoyKey]   : null;
   const tide   = tideKey   ? data[tideKey]   : null;
   const marine = marineKey ? data[marineKey] : null;
+  const w      = data.wave ?? null;  // pre-computed by wave_spec.gleam
   if (!r) return setStatus('no buoy reading');
 
-  const picked = pickWaveSource(r, marine);
-
-  els.wave.textContent = picked.heightM != null
-    ? `${(picked.heightM * FEET_PER_M).toFixed(1)} ft`
+  els.wave.textContent = w?.height_m != null
+    ? `${(w.height_m * FEET_PER_M).toFixed(1)} ft`
     : '—';
 
-  els.period.textContent = picked.periodS != null
-    ? `${picked.periodS.toFixed(0)} s`
+  els.period.textContent = w?.period_s != null
+    ? `${w.period_s.toFixed(0)} s`
     : '—';
 
   els.wind.textContent = formatWind(r.wind_speed_ms, r.wind_direction_deg);
@@ -113,12 +113,11 @@ function render(data) {
   renderTide(els.tide, tide);
 
   // === Live map directional indicators (notebook chart) ===
-  // Swell arrows + label rotate with the picked source's wave direction.
-  // Wind arrow + label rotate with the buoy's wind direction. Both arrows
-  // point TOWARD the source (FROM bearing), matching the cardinal label.
-  // The wave metric-tag mirrors the swell cardinal so the now-card has a
-  // glance-level direction without depending on map literacy.
-  const swellDir = pickWaveDirection(r, marine);
+  // Swell arrows + label rotate with the wave block's direction (which uses
+  // the same source-precedence as the wave height/period: buoy first, marine
+  // fallback). Wind arrow + label rotate with the buoy's wind direction.
+  // Both arrows point TOWARD the source (FROM bearing).
+  const swellDir = w?.direction_deg ?? null;
   if (swellDir != null) {
     els.mapSwell.textContent = cardinal(swellDir);
     rotateMapArrow(els.mapSwellArrows, swellDir, SWELL_NATURAL_DEG, 42, 195);
@@ -152,103 +151,37 @@ function render(data) {
     els.stalePill.setAttribute('hidden', '');
   }
 
-  // === wave-animation mapping (Direction 2: three-component sea state) ===
-  //
-  // Three superimposed sine layers, each tied to a different aspect of the
-  // reading. The space between swell.period_s and mean.period_s is the visible
-  // "messiness" of the sea: when Tp ≈ Tm the layers lock in phase (clean
-  // groundswell); when they diverge they beat against each other (wind sea).
-  //
-  //   swell — Hs * 30 px amp (clamp 6..45),   Tp * 30 px λ (clamp 60..400)
-  //   mean  — Hs * 18 px amp (clamp 4..30),   Tm * 30 px λ (clamp 60..400)
-  //   chop  — ws * 0.75 px amp (clamp 0..6),  fixed 30px λ, fixed 2s period
-  //
-  // Tm is source-bounded: only honored when the picked source is the buoy
-  // (since marine forecast doesn't ship avg_period_s and we don't mix
-  // sources). When Tm is unavailable, mean collapses onto swell — three
-  // components drop to two visible layers, honestly signalling "less rich
-  // data today, no Tp/Tm divergence to show." When wind speed < 3 m/s, the
-  // chop layer drops out entirely (no decorative jitter on calm days).
-  //
-  // The 30× / 18× / 1.5× multipliers were chosen so a typical Gulf day
-  // (Hs ≈ 1m, Tp ≈ 6s, ws ≈ 8 m/s) lands mid-frame across all three layers
-  // without overlap clipping the viewBox. Numbers are taste, not science.
-  if (picked.heightM != null && picked.periodS != null) {
-    const Hs = picked.heightM;
-    const Tp = picked.periodS;
-    const isBuoy = picked.sourceLabel.startsWith('buoy');
-    const Tm = (isBuoy && r.avg_period_s != null) ? r.avg_period_s : Tp;
+  // Apply pre-computed wave layers. The math layer (clamps, source-
+  // precedence, Tm fallback, chop wind threshold) lives in
+  // src/dawnpass/wave_spec.gleam — this is just the copy.
+  applyLayers(w);
 
-    wave.swell.amp      = clamp(Hs * 30, 6, 45);
-    wave.swell.lambda   = clamp(Tp * 30, 60, 400);
-    wave.swell.period_s = Tp;
+  startMotion();
+}
 
-    wave.mean.amp       = clamp(Hs * 18, 4, 30);
-    wave.mean.lambda    = clamp(Tm * 30, 60, 400);
-    wave.mean.period_s  = Tm;
-
-    const ws = r.wind_speed_ms ?? 0;
-    wave.chop.amp = ws > 3 ? clamp(ws * 0.75, 0, 6) : 0;
-  } else {
-    // All wave fields null → breath fallback on mean only.
+// Copy the server-computed layer params from the JSON `wave` block into
+// the local animation state. Silent state (or missing block) → breath
+// fallback (mean layer only).
+function applyLayers(w) {
+  if (!w || w.source === 'silent') {
     wave.swell.amp     = 0;
     wave.chop.amp      = 0;
     wave.mean.lambda   = 200;
     wave.mean.period_s = null;
     // mean.amp is owned by the breath loop in this mode; don't fight it
+    return;
   }
+  wave.swell.amp      = w.swell.amp;
+  wave.swell.lambda   = w.swell.lambda;
+  wave.swell.period_s = w.swell.period_s;
 
-  startMotion();
-}
+  wave.mean.amp       = w.mean.amp;
+  wave.mean.lambda    = w.mean.lambda;
+  wave.mean.period_s  = w.mean.period_s;
 
-// === wave-source picking ===
-//
-// Choose which source feeds the wave SVG and the wave/period cells.
-//
-// Inputs:
-//   buoy   — latest NDBC reading. Sensor truth, but routinely null on wave
-//            fields in calm Gulf conditions (42036 is notorious).
-//   marine — latest Open-Meteo Marine reading. Forecast model, not sensor;
-//            never silent for valid coordinates, less authoritative.
-//
-// Output: { heightM, periodS, sourceLabel }.
-//
-// Rule: buoy when both Hs and Tp are present, else marine when both are
-// present, else nothing. All-or-nothing per source — we never mix Hs from
-// one with Tp from another. Mixed-source reads are confusing; per-field
-// provenance is a future refactor (the Conditions step).
-//
-// sourceLabel is internal-only today. The UI shows the spot name, not the
-// data source. Step 6 surfaces provenance more carefully.
-function pickWaveSource(buoy, marine) {
-  if (buoy && buoy.wave_height_m != null && buoy.dominant_period_s != null) {
-    return {
-      heightM: buoy.wave_height_m,
-      periodS: buoy.dominant_period_s,
-      sourceLabel: `buoy ${buoy.station}`,
-    };
-  }
-  if (marine && marine.wave_height_m != null && marine.wave_period_s != null) {
-    return {
-      heightM: marine.wave_height_m,
-      periodS: marine.wave_period_s,
-      sourceLabel: 'marine · pag',
-    };
-  }
-  return {
-    heightM: null,
-    periodS: null,
-    sourceLabel: buoy ? `buoy ${buoy.station}` : '—',
-  };
-}
-
-// Same source-precedence as pickWaveSource, but only for direction.
-// Buoy wave direction first (sensor truth), then marine forecast,
-// else null (caller keeps the static placeholder).
-function pickWaveDirection(buoy, marine) {
-  if (buoy && buoy.mean_wave_direction_deg != null) return buoy.mean_wave_direction_deg;
-  if (marine && marine.wave_direction_deg != null) return marine.wave_direction_deg;
-  return null;
+  wave.chop.amp       = w.chop.amp;
+  wave.chop.lambda    = w.chop.lambda;
+  wave.chop.period_s  = w.chop.period_s;
 }
 
 // Classify a wind FROM-bearing relative to the spot's beach normal as
@@ -330,10 +263,6 @@ function renderTide(el, t) {
     span.textContent = text;
     el.appendChild(span);
   });
-}
-
-function clamp(v, lo, hi) {
-  return Math.max(lo, Math.min(hi, v));
 }
 
 // === Motion ===
