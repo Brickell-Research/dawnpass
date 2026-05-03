@@ -1,0 +1,25 @@
+src/dawnpass.gleam
+  943a12c024bc3eca 4,14-18,48-63
+src/dawnpass/sources/open_meteo_marine.gleam
+  943a12c024bc3eca 1-139
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "cb4ed9faff78e8608603295a9dc3a4c58f4cd9a1",
+  "prompts": {
+    "943a12c024bc3eca": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5e176387-833f-49fe-aa04-a1eb689a40ce",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "robertDurst",
+      "messages": [],
+      "total_additions": 5,
+      "total_deletions": 4,
+      "accepted_lines": 161,
+      "overriden_lines": 0
+    }
+  }
+}
