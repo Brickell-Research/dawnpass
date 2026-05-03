@@ -1,0 +1,25 @@
+public/index.html
+  943a12c024bc3eca 35
+public/styles.css
+  943a12c024bc3eca 69-71,76-77,458-461
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "b99a895e6ce4a07dd490e930585ef0f4135718f5",
+  "prompts": {
+    "943a12c024bc3eca": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5e176387-833f-49fe-aa04-a1eb689a40ce",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "robertDurst",
+      "messages": [],
+      "total_additions": 10,
+      "total_deletions": 8,
+      "accepted_lines": 1675,
+      "overriden_lines": 0
+    }
+  }
+}
