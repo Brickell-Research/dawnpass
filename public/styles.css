@@ -72,8 +72,9 @@ h1 {
 }
 
 .now-score-value::after {
-  content: " /10";
+  content: "/10";
   color: #E0FFFF; /* full match with the numerator — same font, weight, size, colour */
+  font-weight: 600; /* explicit; ::after inheritance is reliable, but be loud */
 }
 
 .now-score-verdict {
