@@ -210,6 +210,79 @@ h1 {
   }
 }
 
+.outlook {
+  margin-bottom: 1.6em;
+  padding: 1.2rem 1.4rem;
+  background: #0a0a14;
+  border: 1px solid #1a1a2e;
+  border-radius: 8px;
+}
+
+.outlook-title {
+  font-family: 'JetBrains Mono', monospace;
+  color: #FF1493;
+  font-size: 1.2em;
+  margin-bottom: 1rem;
+}
+
+.outlook-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.8rem;
+}
+
+.outlook-day {
+  background: #000;
+  border: 1px solid #1a1a2e;
+  border-radius: 6px;
+  padding: 0.8rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.outlook-day-name {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.95em;
+  color: #FF1493;
+  margin-bottom: 0.3rem;
+  letter-spacing: 0.04em;
+}
+
+.outlook-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+
+.outlook-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7em;
+  color: #7d8793;
+  letter-spacing: 0.06em;
+}
+
+.outlook-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.9em;
+  color: #E0FFFF;
+  white-space: nowrap;
+}
+
+.outlook-empty {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82em;
+  color: #7d8793;
+  font-style: italic;
+}
+
+@media (max-width: 480px) {
+  .outlook-grid { gap: 0.5rem; }
+  .outlook-day { padding: 0.6rem 0.7rem; }
+  .outlook-value { font-size: 0.82em; }
+}
+
 .notes {
   margin-bottom: 1.6em;
   padding: 1rem 1.4rem;

@@ -31,6 +31,7 @@ const els = {
   mapWindArrow:    document.getElementById('map-wind-arrow'),
   windTag:         document.getElementById('m-wind-tag'),
   waveTag:         document.getElementById('m-wave-tag'),
+  outlookGrid:     document.getElementById('outlook-grid'),
 };
 
 // Beach orientation for wind-quality classification. PAG faces west, so
@@ -130,6 +131,9 @@ function render(data) {
     els.mapWind.textContent = cardinal(r.wind_direction_deg);
     rotateMapArrow(els.mapWindArrow, r.wind_direction_deg, WIND_NATURAL_DEG, 170, 100);
   }
+
+  // 3-day outlook strip — wave-only for now (wind comes when Step 7 lands).
+  renderOutlook(els.outlookGrid, marine?.forecast ?? []);
 
   // Spot identity now lives in the now-map illustration; no text pill.
   els.updated.textContent = r.observed_at_utc
@@ -425,6 +429,137 @@ function drawLayer(pathEl, layer) {
     d += ` L${x.toFixed(1)},${y.toFixed(2)}`;
   }
   pathEl.setAttribute('d', d);
+}
+
+// === 3-day outlook ===
+//
+// Renders the marine forecast as 3 daily summary cards into `gridEl`.
+// Days are bucketed by the *user's local* day boundary (so "Sun" means
+// "Sunday in your timezone" — most of UTC Sunday plus a few hours of
+// UTC Monday for US timezones). Past hours (forecast.at_utc < now) are
+// dropped so the first card is always "from this hour onward."
+//
+// Per-day stats:
+//   wave    — min..max wave_height_m converted to ft
+//   period  — median wave_period_s rounded to seconds
+//   swell   — circular-mean wave_direction_deg as a cardinal (handles
+//             the 0/360 wrap-around correctly)
+function renderOutlook(gridEl, forecastHours) {
+  if (!gridEl) return;
+  gridEl.replaceChildren();
+
+  const days = groupForecastByLocalDay(forecastHours, 3);
+  if (days.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'outlook-empty';
+    empty.textContent = 'no forecast data';
+    gridEl.appendChild(empty);
+    return;
+  }
+
+  for (const day of days) {
+    gridEl.appendChild(buildDayCard(day));
+  }
+}
+
+function groupForecastByLocalDay(forecastHours, maxDays) {
+  const now = Date.now();
+  const groups = new Map();
+
+  for (const hour of forecastHours) {
+    const d = new Date(hour.at_utc);
+    if (isNaN(d.getTime())) continue;
+    if (d.getTime() < now) continue;
+
+    const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+    if (!groups.has(key)) {
+      if (groups.size >= maxDays) continue;
+      groups.set(key, {
+        label: d.toLocaleDateString(undefined, { weekday: 'short' }),
+        hours: [],
+      });
+    }
+    groups.get(key).hours.push(hour);
+  }
+
+  return Array.from(groups.values()).map(g => ({ ...g, ...dayStats(g.hours) }));
+}
+
+function dayStats(hours) {
+  const heights = hours.map(h => h.wave_height_m).filter(v => v != null);
+  const periods = hours.map(h => h.wave_period_s).filter(v => v != null);
+  const dirs    = hours.map(h => h.wave_direction_deg).filter(v => v != null);
+
+  return {
+    minHeight:    heights.length ? Math.min(...heights) : null,
+    maxHeight:    heights.length ? Math.max(...heights) : null,
+    medianPeriod: periods.length ? medianOf(periods) : null,
+    dominantDir:  dirs.length    ? circularMean(dirs) : null,
+  };
+}
+
+function medianOf(xs) {
+  const sorted = [...xs].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+// Mean of compass bearings using vector summation. Plain arithmetic mean
+// fails at the 0/360 wrap-around (mean of [355, 5] would be 180, not 0).
+function circularMean(degrees) {
+  const sumSin = degrees.reduce((s, deg) => s + Math.sin(deg * Math.PI / 180), 0);
+  const sumCos = degrees.reduce((s, deg) => s + Math.cos(deg * Math.PI / 180), 0);
+  let mean = Math.atan2(sumSin, sumCos) * 180 / Math.PI;
+  if (mean < 0) mean += 360;
+  return mean;
+}
+
+function buildDayCard(day) {
+  const card = document.createElement('article');
+  card.className = 'outlook-day';
+
+  const name = document.createElement('h3');
+  name.className = 'outlook-day-name';
+  name.textContent = day.label;
+  card.appendChild(name);
+
+  card.appendChild(outlookRow('wave',   formatWaveRange(day)));
+  card.appendChild(outlookRow('period', formatOutlookPeriod(day)));
+  card.appendChild(outlookRow('swell',  formatOutlookSwell(day)));
+  return card;
+}
+
+function outlookRow(label, value) {
+  const row = document.createElement('div');
+  row.className = 'outlook-row';
+
+  const l = document.createElement('span');
+  l.className = 'outlook-label';
+  l.textContent = label;
+  row.appendChild(l);
+
+  const v = document.createElement('span');
+  v.className = 'outlook-value';
+  v.textContent = value;
+  row.appendChild(v);
+
+  return row;
+}
+
+function formatWaveRange(day) {
+  if (day.minHeight == null || day.maxHeight == null) return '—';
+  const minFt = day.minHeight * FEET_PER_M;
+  const maxFt = day.maxHeight * FEET_PER_M;
+  if (Math.abs(maxFt - minFt) < 0.15) return `${maxFt.toFixed(1)} ft`;
+  return `${minFt.toFixed(1)}–${maxFt.toFixed(1)} ft`;
+}
+
+function formatOutlookPeriod(day) {
+  return day.medianPeriod != null ? `${day.medianPeriod.toFixed(0)} s` : '—';
+}
+
+function formatOutlookSwell(day) {
+  return day.dominantDir != null ? cardinal(day.dominantDir) : '—';
 }
 
 load();
