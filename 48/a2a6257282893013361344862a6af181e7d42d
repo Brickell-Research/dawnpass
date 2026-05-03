@@ -1,0 +1,23 @@
+public/map-pag.svg
+  943a12c024bc3eca 1-129
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "48a2a6257282893013361344862a6af181e7d42d",
+  "prompts": {
+    "943a12c024bc3eca": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5e176387-833f-49fe-aa04-a1eb689a40ce",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "robertDurst",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 1794,
+      "overriden_lines": 0
+    }
+  }
+}
