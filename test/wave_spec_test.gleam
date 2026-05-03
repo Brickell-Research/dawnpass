@@ -8,9 +8,12 @@
 import birdie
 import dawnpass/sources/ndbc.{type BuoyReading, BuoyReading}
 import dawnpass/sources/open_meteo_marine.{type MarineReading, MarineReading}
-import dawnpass/wave_spec
+import dawnpass/wave_spec.{Layer}
 import gleam/json
+import gleam/list
 import gleam/option.{None, Some}
+import gleeunit/should
+import simplifile
 
 // === Fixture readings ===
 
@@ -112,4 +115,63 @@ pub fn clamp_boundaries_test() {
   let b = buoy(Some(5.0), Some(0.5), Some(0.5), Some(0), Some(50.0))
   wave_spec.compute_layers(Some(b), None)
   |> snap("wave_spec: amplitudes and wavelengths respect clamp bounds")
+}
+
+// === format_fixed byte-equivalence with JS Number.prototype.toFixed ===
+
+pub fn format_fixed_basic_cases_test() {
+  // (input, decimals, expected) — captured from JS console for each case.
+  let cases = [
+    #(0.0, 2, "0.00"),
+    #(4.0, 1, "4.0"),
+    #(50.0, 0, "50"),
+    #(47.49, 2, "47.49"),
+    #(-4.05, 1, "-4.1"),
+    #(4.05, 1, "4.1"),
+    // Negative value that rounds to zero: JS shows "0.00", not "-0.00".
+    #(-0.001, 2, "0.00"),
+    // Trailing-zero padding.
+    #(1.5, 3, "1.500"),
+  ]
+  list.each(cases, fn(c) {
+    let #(v, d, expected) = c
+    wave_spec.format_fixed(v, d) |> should.equal(expected)
+  })
+}
+
+// === render_path byte-equivalence with JS drawLayer ===
+//
+// Each fixture is the literal string JS produces for the given inputs. If
+// these tests fail, either format_fixed regressed or render_path's loop
+// drifted from the JS implementation in public/wave.js.
+
+fn read_fixture(name: String) -> String {
+  let assert Ok(body) = simplifile.read("test/fixtures/" <> name)
+  body
+}
+
+pub fn render_path_swell_divergent_test() {
+  wave_spec.render_path(Layer(amp: 24.0, lambda: 240.0, period_s: Some(8.0)), 0.0)
+  |> should.equal(read_fixture("render_path_swell_divergent.txt"))
+}
+
+pub fn render_path_mean_divergent_test() {
+  wave_spec.render_path(Layer(amp: 14.4, lambda: 120.0, period_s: Some(4.0)), 0.0)
+  |> should.equal(read_fixture("render_path_mean_divergent.txt"))
+}
+
+pub fn render_path_chop_test() {
+  wave_spec.render_path(Layer(amp: 6.0, lambda: 30.0, period_s: Some(2.0)), 0.0)
+  |> should.equal(read_fixture("render_path_chop.txt"))
+}
+
+pub fn render_path_marine_mid_tick_test() {
+  wave_spec.render_path(Layer(amp: 12.6, lambda: 126.0, period_s: Some(4.15)), 0.5)
+  |> should.equal(read_fixture("render_path_marine_mid_tick.txt"))
+}
+
+pub fn render_path_zero_amp_test() {
+  // amp <= 0 → empty path (matches JS drawLayer's short-circuit).
+  wave_spec.render_path(Layer(amp: 0.0, lambda: 200.0, period_s: None), 0.0)
+  |> should.equal("")
 }

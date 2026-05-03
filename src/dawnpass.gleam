@@ -1,6 +1,9 @@
 import dawnpass/ingest
+import dawnpass/score/orchestrator as score_orch
+import dawnpass/score/spots
 import dawnpass/sources/ndbc
 import dawnpass/sources/noaa_tides
+import dawnpass/sources/open_meteo_forecast
 import dawnpass/sources/open_meteo_marine
 import dawnpass/wave_spec
 import gleam/io
@@ -35,6 +38,11 @@ pub fn main() -> Nil {
       latitude: pag_lat,
       longitude: pag_lon,
     ))
+  let wind_opt =
+    log_wind(open_meteo_forecast.fetch_wind(
+      latitude: pag_lat,
+      longitude: pag_lon,
+    ))
 
   let buoy_block = case buoy_opt {
     Some(r) -> [#("buoy_" <> r.station, ndbc.encode(r))]
@@ -48,6 +56,10 @@ pub fn main() -> Nil {
     Some(r) -> [#("marine_pag", open_meteo_marine.encode(r))]
     None -> []
   }
+  let wind_block = case wind_opt {
+    Some(r) -> [#("wind_pag", open_meteo_forecast.encode(r))]
+    None -> []
+  }
 
   // Computed wave layer block — derived from buoy + marine via wave_spec.
   // Always emitted (Silent when both sources are wave-null) so the renderer
@@ -56,8 +68,30 @@ pub fn main() -> Nil {
     #("wave", wave_spec.encode(wave_spec.compute_layers(buoy_opt, marine_opt))),
   ]
 
+  // Scoring + window detection. Always emitted (the page can read it
+  // regardless of which sources succeeded).
+  let score_block = [
+    #(
+      "score",
+      score_orch.build_block(
+        buoy_opt,
+        tide_opt,
+        marine_opt,
+        wind_opt,
+        spots.pag,
+      ),
+    ),
+  ]
+
   let blocks: List(#(String, json.Json)) =
-    list.flatten([buoy_block, tide_block, marine_block, wave_block])
+    list.flatten([
+      buoy_block,
+      tide_block,
+      marine_block,
+      wind_block,
+      wave_block,
+      score_block,
+    ])
 
   case ingest.write_latest(blocks, to: data_path) {
     Ok(_) -> io.println("wrote " <> data_path)
@@ -108,6 +142,26 @@ fn log_marine(
     }
     Error(e) -> {
       io.println("open-meteo marine fetch failed: " <> string.inspect(e))
+      None
+    }
+  }
+}
+
+fn log_wind(
+  res: Result(
+    open_meteo_forecast.WindForecast,
+    open_meteo_forecast.ForecastError,
+  ),
+) -> Option(open_meteo_forecast.WindForecast) {
+  case res {
+    Ok(r) -> {
+      io.println("wind pag · " <> r.observed_at_utc)
+      Some(r)
+    }
+    Error(e) -> {
+      io.println(
+        "open-meteo forecast (wind) fetch failed: " <> string.inspect(e),
+      )
       None
     }
   }

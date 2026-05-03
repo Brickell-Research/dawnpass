@@ -19,8 +19,15 @@
 
 import dawnpass/sources/ndbc
 import dawnpass/sources/open_meteo_marine
+import gleam/float
+import gleam/int
 import gleam/json
+import gleam/list
 import gleam/option.{type Option, None, Some}
+import gleam/string
+
+@external(erlang, "math", "sin")
+fn sin(x: Float) -> Float
 
 // === Public types ===
 
@@ -249,6 +256,105 @@ pub fn clamp(v: Float, lo: Float, hi: Float) -> Float {
     True, _ -> lo
     _, True -> hi
     _, _ -> v
+  }
+}
+
+// === SVG path rendering (matches public/wave.js drawLayer byte-for-byte) ===
+//
+// JS reference (animation tick):
+//   const W = 800, H = 100, cy = H / 2, samples = 200;
+//   d = `M0,${cy}`;
+//   for (i=1; i<=samples; i++) {
+//     x = (i / samples) * W;
+//     y = cy - layer.amp * Math.sin((x / layer.lambda) * 2π - phase);
+//     d += ` L${x.toFixed(1)},${y.toFixed(2)}`;
+//   }
+//
+// Same numbers, same precision, same iteration order — byte equivalence is
+// enforced via Birdie snapshot tests in test/wave_spec_test.gleam.
+
+const path_w: Float = 800.0
+
+const path_cy: Float = 50.0
+
+const path_samples: Int = 200
+
+const tau: Float = 6.283185307179586
+
+pub fn render_path(layer: Layer, phase: Float) -> String {
+  case layer.amp >. 0.0 {
+    False -> ""
+    True -> "M0,50" <> build_segments(1, layer, phase, [])
+  }
+}
+
+fn build_segments(
+  i: Int,
+  layer: Layer,
+  phase: Float,
+  acc: List(String),
+) -> String {
+  case i > path_samples {
+    True -> list.reverse(acc) |> string.concat
+    False -> {
+      let x = int.to_float(i) /. int.to_float(path_samples) *. path_w
+      let arg = x /. layer.lambda *. tau -. phase
+      let y = path_cy -. layer.amp *. sin(arg)
+      let segment = " L" <> format_fixed(x, 1) <> "," <> format_fixed(y, 2)
+      build_segments(i + 1, layer, phase, [segment, ..acc])
+    }
+  }
+}
+
+// === format_fixed: mimic JS Number.prototype.toFixed ===
+//
+// Round half-away-from-zero (per ECMA-262 §21.1.3.4), pad with trailing
+// zeros, never emit a negative sign for values that round to zero, no
+// decimal point when decimals=0. The byte-equivalence tests lock this.
+
+pub fn format_fixed(value: Float, decimals: Int) -> String {
+  let scale = pow10(decimals)
+  let scaled = value *. int.to_float(scale)
+  let rounded = round_half_away_from_zero(scaled)
+
+  let abs_n = int.absolute_value(rounded)
+  let int_part = abs_n / scale
+  let frac_part = abs_n % scale
+
+  let body = case decimals {
+    0 -> int.to_string(int_part)
+    _ ->
+      int.to_string(int_part)
+      <> "."
+      <> pad_left_zeros(int.to_string(frac_part), decimals)
+  }
+
+  case rounded < 0 {
+    True -> "-" <> body
+    False -> body
+  }
+}
+
+fn round_half_away_from_zero(x: Float) -> Int {
+  let abs_int = float.truncate(float.absolute_value(x) +. 0.5)
+  case x <. 0.0 {
+    True -> -abs_int
+    False -> abs_int
+  }
+}
+
+fn pow10(n: Int) -> Int {
+  case n <= 0 {
+    True -> 1
+    False -> 10 * pow10(n - 1)
+  }
+}
+
+fn pad_left_zeros(s: String, width: Int) -> String {
+  let diff = width - string.length(s)
+  case diff <= 0 {
+    True -> s
+    False -> string.repeat("0", diff) <> s
   }
 }
 
