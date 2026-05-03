@@ -17,17 +17,20 @@ jobs:
 
       - uses: erlef/setup-beam@v1
         with:
-          otp-version: '28'
-          gleam-version: '1.16'
+          otp-version: '28.5'
+          gleam-version: '1.16.0'
 
       - name: Cache build
         uses: actions/cache@v4
         with:
-          path: build
+          path: |
+            build
+            ~/.cache/gleam
           key: ${{ runner.os }}-gleam-${{ hashFiles('manifest.toml') }}
           restore-keys: ${{ runner.os }}-gleam-
 
-      - run: gleam format --check src test
+      - run: gleam format --check
       - run: gleam deps download
-      - run: gleam build
+      - run: gleam check
+      - run: gleam build --warnings-as-errors
       - run: gleam test
