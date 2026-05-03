@@ -111,20 +111,12 @@ h1 {
 
 .now-body {
   display: grid;
-  grid-template-columns: 1fr 200px;
+  grid-template-columns: 1fr 260px;
   gap: 1.4rem;
-  align-items: stretch;
+  align-items: start;
 }
 
-.now-data {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-/* "updated…" anchors the bottom of the data column so it baseline-aligns
-   with the map and the card doesn't read as a broken layout. */
-.now-data .now-updated { margin-top: auto; }
+.now-data { min-width: 0; }
 
 .now-map {
   display: flex;
@@ -135,7 +127,7 @@ h1 {
 .now-map-svg {
   display: block;
   width: 100%;
-  max-width: 200px;
+  max-width: 260px;
   height: auto;
 }
 
@@ -181,7 +173,7 @@ h1 {
 
 .tide-row {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 0.8rem;
   padding-top: 0.8rem;
   margin-bottom: 1rem;
@@ -204,14 +196,15 @@ h1 {
 
 .tide-chunk { display: inline-block; white-space: nowrap; }
 
-/* Sparkline tucked next to tide — ambient signal that the page is alive
-   without competing with the map for attention. */
+.wave-frame {
+  position: relative;
+  margin-bottom: 0.6rem;
+}
+
 .now-wave {
   display: block;
-  flex: 1;
-  min-width: 0;
-  height: 24px;
-  opacity: 0.75;
+  width: 100%;
+  height: 80px;
 }
 
 /* Three superimposed components, painted bottom→top in DOM order. Colors
@@ -242,9 +235,6 @@ h1 {
 @media (max-width: 480px) {
   .now-grid { gap: 0.5rem; }
   .metric-value { font-size: 0.95em; white-space: nowrap; }
-  /* Sparkline is ambient ornament — hide on phone where the tide line
-     itself is wide enough to fill the row. */
-  .now-wave { display: none; }
 }
 
 /* Defensive: any future CSS animations/transitions inherit a near-instant duration
