@@ -1,0 +1,27 @@
+public/index.html
+  943a12c024bc3eca 50
+public/styles.css
+  943a12c024bc3eca 73,128-141,255-257,259-262,265-266,269-271
+public/wave.js
+  943a12c024bc3eca 35,38-42,104-113,265-282
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "edb60f144c0e44eedfbaf9b3a627062eb1ea1220",
+  "prompts": {
+    "943a12c024bc3eca": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5e176387-833f-49fe-aa04-a1eb689a40ce",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "robertDurst",
+      "messages": [],
+      "total_additions": 62,
+      "total_deletions": 9,
+      "accepted_lines": 1727,
+      "overriden_lines": 0
+    }
+  }
+}
