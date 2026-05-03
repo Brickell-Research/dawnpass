@@ -48,7 +48,9 @@ pub type TideEventKind {
 }
 
 pub type TideError {
-  HttpError(String)
+  HttpError(httpc.HttpError)
+  InvalidUrl(String)
+  JsonDecodeError(json.DecodeError)
   ParseError(String)
 }
 
@@ -115,12 +117,12 @@ fn fetch_hilo(station: String) -> Result(List(TideEvent), TideError) {
 fn get(url: String) -> Result(String, TideError) {
   use base_req <- result.try(
     request.to(url)
-    |> result.replace_error(HttpError("invalid url: " <> url)),
+    |> result.replace_error(InvalidUrl(url)),
   )
   let req = request.set_header(base_req, "user-agent", user_agent)
   use resp <- result.try(
     httpc.send(req)
-    |> result.map_error(fn(e) { HttpError(string.inspect(e)) }),
+    |> result.map_error(HttpError),
   )
   Ok(resp.body)
 }
@@ -139,7 +141,7 @@ pub fn parse_water_level(body: String) -> Result(WaterLevel, TideError) {
     decode.success(data)
   }
   case json.parse(body, decoder) {
-    Error(_) -> Error(ParseError("water_level: json decode failed"))
+    Error(e) -> Error(JsonDecodeError(e))
     Ok([]) -> Error(ParseError("water_level: empty data"))
     Ok([#(t, v_str), ..]) ->
       case float.parse(v_str) {
@@ -163,7 +165,7 @@ pub fn parse_hilo(body: String) -> Result(List(TideEvent), TideError) {
     decode.success(predictions)
   }
   case json.parse(body, decoder) {
-    Error(_) -> Error(ParseError("hilo: json decode failed"))
+    Error(e) -> Error(JsonDecodeError(e))
     Ok(rows) -> {
       let events =
         list.filter_map(rows, fn(row) {

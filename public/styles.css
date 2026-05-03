@@ -227,7 +227,8 @@ h1 {
 }
 
 @media (max-width: 480px) {
-  .now-grid { grid-template-columns: 1fr 1fr; }
+  .now-grid { gap: 0.5rem; }
+  .metric-value { font-size: 0.95em; white-space: nowrap; }
 }
 
 /* Defensive: any future CSS animations/transitions inherit a near-instant duration

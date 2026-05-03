@@ -8,11 +8,10 @@
 import filepath
 import gleam/json
 import gleam/result
-import gleam/string
 import simplifile
 
 pub type IngestError {
-  WriteError(String)
+  WriteError(simplifile.FileError)
 }
 
 /// Write a list of `(key, encoded_json)` blocks as a single JSON object
@@ -25,9 +24,9 @@ pub fn write_latest(
 
   use _ <- result.try(
     simplifile.create_directory_all(filepath.directory_name(path))
-    |> result.map_error(fn(e) { WriteError(string.inspect(e)) }),
+    |> result.map_error(WriteError),
   )
 
   simplifile.write(to: path, contents: body)
-  |> result.map_error(fn(e) { WriteError(string.inspect(e)) })
+  |> result.map_error(WriteError)
 }

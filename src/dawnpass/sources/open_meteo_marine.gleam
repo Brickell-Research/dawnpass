@@ -32,7 +32,9 @@ pub type MarineReading {
 }
 
 pub type MarineError {
-  HttpError(String)
+  HttpError(httpc.HttpError)
+  InvalidUrl(String)
+  JsonDecodeError(json.DecodeError)
   ParseError(String)
 }
 
@@ -58,12 +60,12 @@ pub fn fetch_marine(
 
   use base_req <- result.try(
     request.to(url)
-    |> result.replace_error(HttpError("invalid url: " <> url)),
+    |> result.replace_error(InvalidUrl(url)),
   )
   let req = request.set_header(base_req, "user-agent", user_agent)
   use resp <- result.try(
     httpc.send(req)
-    |> result.map_error(fn(e) { HttpError(string.inspect(e)) }),
+    |> result.map_error(HttpError),
   )
 
   parse_marine(resp.body)
@@ -97,8 +99,7 @@ pub fn parse_marine(body: String) -> Result(MarineReading, MarineError) {
 
   case json.parse(body, decoder) {
     Ok(reading) -> Ok(reading)
-    Error(e) ->
-      Error(ParseError("open-meteo marine decode: " <> string.inspect(e)))
+    Error(e) -> Error(JsonDecodeError(e))
   }
 }
 
