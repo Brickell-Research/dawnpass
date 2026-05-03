@@ -1,0 +1,8 @@
+---
+version: 2.0.0
+title: noaa hilo 8726520
+---
+TideEvent(Low, "2026-05-03T02:02:00Z", -0.203)
+TideEvent(High, "2026-05-03T09:14:00Z", 1.371)
+TideEvent(Low, "2026-05-03T12:05:00Z", 1.265)
+TideEvent(High, "2026-05-03T18:35:00Z", 2.524)

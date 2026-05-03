@@ -1,0 +1,5 @@
+---
+version: 2.0.0
+title: noaa water_level 8726520
+---
+WaterLevel("2026-05-03T19:00:00Z", 2.323)

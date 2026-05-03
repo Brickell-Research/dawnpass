@@ -35,6 +35,16 @@ Bursts of "implement everything in one shot" are hard to review and hard to roll
 - Data flow (current): `gleam run` → writes `public/data/latest.json` → page fetches and renders.
 - Hard rules from the project memory: no Surfline scraping; disable audio on any future cameras (FL § 934.03); design for hurricane replaceability, not survivability.
 
+## Snapshot tests (Birdie)
+
+Source-parser regressions are caught with [birdie](https://hexdocs.pm/birdie) snapshot tests in `test/parsers_test.gleam`. Each test reads a frozen fixture from `test/fixtures/`, runs it through a parser, and snaps the encoded output.
+
+- **Fixtures are real responses captured once** (NDBC realtime2, NOAA water_level + hilo, Open-Meteo marine). They don't refresh — that's the point. If an upstream API changes shape, the test fails.
+- **Snapshots live in `test/birdie_snapshots/`** as `*.accepted` files, committed to git.
+- **Reviewing a diff:** when a parser change produces a new snapshot, `gleam test` writes a `.new` file alongside the `.accepted` and fails. Run `gleam run -m birdie` to interactively accept or reject. CI never auto-accepts.
+- **Adding a new fixture:** drop the captured response in `test/fixtures/`, add a test in `parsers_test.gleam`, run `gleam test` once to write the initial `.new`, then `gleam run -m birdie` to accept.
+- **Don't snapshot the full assembled `latest.json` end-to-end yet** — that needs all sources fixtured at once and a pinned clock; revisit when the data shape stabilises.
+
 ## Verifying the deployed site (Playwright MCP)
 
 A Playwright MCP server is wired into `.mcp.json` so Claude can drive a real headless browser against `dawnpass.brickellresearch.org` after each push — accessibility snapshots, console messages, screenshots when needed.
