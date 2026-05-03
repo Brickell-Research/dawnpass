@@ -1,0 +1,62 @@
+test/fixtures/render_path_chop.txt
+  578f1016a6fb90d1 1
+src/dawnpass/sources/open_meteo_forecast.gleam
+  943a12c024bc3eca 1-172
+test/wave_spec_test.gleam
+  578f1016a6fb90d1 11,13,15-16,119-177
+test/fixtures/render_path_swell_divergent.txt
+  578f1016a6fb90d1 1
+src/dawnpass/score/spots.gleam
+  943a12c024bc3eca 1-14,16-108
+src/dawnpass/score/score.gleam
+  943a12c024bc3eca 1-210
+src/dawnpass/score/conditions.gleam
+  943a12c024bc3eca 1-45
+src/dawnpass.gleam
+  943a12c024bc3eca 2-3,6,41-45,59-62,71-85,87-94,149-162,164-168
+src/dawnpass/wave_spec.gleam
+  578f1016a6fb90d1 22-23,25,27-30,262-360
+src/dawnpass/score/window.gleam
+  943a12c024bc3eca 1-154,156-207
+test/fixtures/render_path_marine_mid_tick.txt
+  578f1016a6fb90d1 1
+src/dawnpass/score/spot_config.gleam
+  943a12c024bc3eca 1-65
+test/fixtures/render_path_mean_divergent.txt
+  578f1016a6fb90d1 1
+src/dawnpass/score/orchestrator.gleam
+  943a12c024bc3eca 1-326
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "dc7c832042cecbcdd51a9722ec4205e189704565",
+  "prompts": {
+    "578f1016a6fb90d1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "dc41a10a-5539-4849-9e14-221fb613fdae",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "robertDurst",
+      "messages": [],
+      "total_additions": 183,
+      "total_deletions": 11,
+      "accepted_lines": 173,
+      "overriden_lines": 0
+    },
+    "943a12c024bc3eca": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5e176387-833f-49fe-aa04-a1eb689a40ce",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "robertDurst",
+      "messages": [],
+      "total_additions": 1343,
+      "total_deletions": 146,
+      "accepted_lines": 2850,
+      "overriden_lines": 3
+    }
+  }
+}
