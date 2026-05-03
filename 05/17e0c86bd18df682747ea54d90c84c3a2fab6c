@@ -1,0 +1,36 @@
+public/wave.js
+  578f1016a6fb90d1 3-8,10-12,24-26,33-39,41-43,99-108,110-115,117-119,121-135,137-142,237-244,260,263-264,266-271,274,283-285,297-307,313-314,318
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "0517e0c86bd18df682747ea54d90c84c3a2fab6c",
+  "prompts": {
+    "578f1016a6fb90d1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "dc41a10a-5539-4849-9e14-221fb613fdae",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "robertDurst",
+      "messages": [],
+      "total_additions": 99,
+      "total_deletions": 56,
+      "accepted_lines": 99,
+      "overriden_lines": 0
+    },
+    "943a12c024bc3eca": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5e176387-833f-49fe-aa04-a1eb689a40ce",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "robertDurst",
+      "messages": [],
+      "total_additions": 483,
+      "total_deletions": 0,
+      "accepted_lines": 483,
+      "overriden_lines": 0
+    }
+  }
+}
