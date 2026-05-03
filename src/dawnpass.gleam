@@ -11,7 +11,12 @@ import gleam/string
 
 const buoy_station = "42036"
 
-const tide_station = "8726520"
+// 8726724 = Clearwater Beach (Gulf primary, ~20mi N of PAG). The previous
+// station 8726520 (St Petersburg) is on Tampa Bay — bay tides lag the
+// open Gulf by ~30-90min through Egmont Key inlet, which gave wrong
+// next-event times for a Gulf-facing spot. Future: derive PAG-specific
+// offsets from a subordinate station once spots/<spot>.json supports it.
+const tide_station = "8726724"
 
 // Pass-a-Grille (decimal degrees). Hardcoded until spot configs land.
 const pag_lat = 27.685

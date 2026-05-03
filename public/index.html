@@ -26,6 +26,15 @@
     <p class="tagline">the watch is up.</p>
     <p class="status">v0 · pre-release · forecast logic en route</p>
 
+    <aside class="notes" aria-label="how to read this">
+      <h3 class="notes-title">how to read this</h3>
+      <ul class="notes-list">
+        <li class="notes-cyan"><strong>swell</strong> — the bearing waves come from. PAG works on W/SW swell; N swell barely registers.</li>
+        <li class="notes-pink"><strong>wind</strong> — the bearing wind comes from. PAG faces west, so <em>east winds are offshore</em> (clean) and <em>west winds are onshore</em> (blown out).</li>
+        <li class="notes-tide"><strong>tide</strong> — observed level + trend, plus the next high/low time. Most Gulf longboard windows happen mid-tide on the drop.</li>
+      </ul>
+    </aside>
+
     <section class="now" aria-label="current conditions">
       <header class="now-header">
         <h2 class="now-title">now</h2>
@@ -47,7 +56,7 @@
               <span class="metric-value" id="m-period">—</span>
             </div>
             <div class="metric">
-              <span class="metric-label">wind</span>
+              <span class="metric-label">wind · buoy</span>
               <span class="metric-value" id="m-wind">—</span>
               <span class="metric-tag" id="m-wind-tag"></span>
             </div>
@@ -207,15 +216,6 @@
       <h2 class="outlook-title">outlook</h2>
       <div class="outlook-grid" id="outlook-grid"></div>
     </section>
-
-    <aside class="notes" aria-label="how to read this">
-      <h3 class="notes-title">how to read this</h3>
-      <ul class="notes-list">
-        <li class="notes-cyan"><strong>swell</strong> — the bearing waves come from. PAG works on W/SW swell; N swell barely registers.</li>
-        <li class="notes-pink"><strong>wind</strong> — the bearing wind comes from. PAG faces west, so <em>east winds are offshore</em> (clean) and <em>west winds are onshore</em> (blown out).</li>
-        <li class="notes-tide"><strong>tide</strong> — observed level + trend, plus the next high/low time. Most Gulf longboard windows happen mid-tide on the drop.</li>
-      </ul>
-    </aside>
   </main>
 
   <footer>
