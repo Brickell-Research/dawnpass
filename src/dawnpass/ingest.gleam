@@ -4,14 +4,20 @@
 //// own their own HTTP, parsing, and per-source encoding. ingest.gleam
 //// just persists a list of pre-encoded JSON blocks to disk under
 //// stable per-source keys for the static site to fetch.
+////
+//// Also responsible for SSR'ing the wave-layer paths into index.html so
+//// no-JS / first-paint visitors see the correct wave shape immediately.
 
+import dawnpass/wave_spec.{type WaveLayers}
 import filepath
 import gleam/json
 import gleam/result
+import gleam/string
 import simplifile
 
 pub type IngestError {
   WriteError(simplifile.FileError)
+  ReadError(simplifile.FileError)
 }
 
 /// Write a list of `(key, encoded_json)` blocks as a single JSON object
@@ -28,5 +34,36 @@ pub fn write_latest(
   )
 
   simplifile.write(to: path, contents: body)
+  |> result.map_error(WriteError)
+}
+
+/// Render the three wave-layer SVG paths at phase=0 and substitute them
+/// into the index template, producing the deployed index.html.
+///
+/// Placeholders:  {{WAVE_CHOP_D}}  {{WAVE_MEAN_D}}  {{WAVE_SWELL_D}}
+///
+/// Byte-equivalence with public/wave.js drawLayer is enforced by snapshot
+/// tests against captured JS fixtures (test/wave_spec_test.gleam).
+pub fn write_index(
+  layers: WaveLayers,
+  template template_path: String,
+  output output_path: String,
+) -> Result(Nil, IngestError) {
+  use template <- result.try(
+    simplifile.read(template_path)
+    |> result.map_error(ReadError),
+  )
+
+  let chop_d = wave_spec.render_path(layers.chop, 0.0)
+  let mean_d = wave_spec.render_path(layers.mean, 0.0)
+  let swell_d = wave_spec.render_path(layers.swell, 0.0)
+
+  let body =
+    template
+    |> string.replace(each: "{{WAVE_CHOP_D}}", with: chop_d)
+    |> string.replace(each: "{{WAVE_MEAN_D}}", with: mean_d)
+    |> string.replace(each: "{{WAVE_SWELL_D}}", with: swell_d)
+
+  simplifile.write(to: output_path, contents: body)
   |> result.map_error(WriteError)
 }

@@ -28,6 +28,10 @@ const pag_lon = -82.738
 
 const data_path = "public/data/latest.json"
 
+const index_template_path = "public/index.template.html"
+
+const index_output_path = "public/index.html"
+
 pub fn main() -> Nil {
   io.println("dawnpass · the watch is up")
 
@@ -64,9 +68,8 @@ pub fn main() -> Nil {
   // Computed wave layer block — derived from buoy + marine via wave_spec.
   // Always emitted (Silent when both sources are wave-null) so the renderer
   // can rely on `data.wave` being present.
-  let wave_block = [
-    #("wave", wave_spec.encode(wave_spec.compute_layers(buoy_opt, marine_opt))),
-  ]
+  let wave_layers = wave_spec.compute_layers(buoy_opt, marine_opt)
+  let wave_block = [#("wave", wave_spec.encode(wave_layers))]
 
   // Scoring + window detection. Always emitted (the page can read it
   // regardless of which sources succeeded).
@@ -96,6 +99,20 @@ pub fn main() -> Nil {
   case ingest.write_latest(blocks, to: data_path) {
     Ok(_) -> io.println("wrote " <> data_path)
     Error(e) -> io.println("write failed: " <> string.inspect(e))
+  }
+
+  // SSR the wave-layer paths into index.html so first paint is correct
+  // without JS. JS still mounts on top to animate.
+  case
+    ingest.write_index(
+      wave_layers,
+      template: index_template_path,
+      output: index_output_path,
+    )
+  {
+    Ok(_) -> io.println("wrote " <> index_output_path)
+    Error(e) ->
+      io.println("index write failed: " <> string.inspect(e))
   }
 }
 
