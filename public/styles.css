@@ -159,7 +159,7 @@ h1 {
 
 .legend-swell::before { background: #FF1493;                   height: 2.5px; }
 .legend-mean::before  { background: #00CED1;                   height: 1.5px; }
-.legend-chop::before  { background: rgba(255, 255, 255, 0.5); height: 1px;   }
+.legend-chop::before  { background: rgba(255, 255, 255, 0.4); height: 0.75px; }
 
 .legend-name { color: #c8d4dc; min-width: 3em; }
 .legend-desc { color: #7d8793; }
@@ -173,7 +173,7 @@ h1 {
 
 /* Three superimposed components, painted bottom→top in DOM order:
    chop (high-freq surface texture), mean sea, dominant swell. */
-#wave-chop  { stroke: rgba(255, 255, 255, 0.35); stroke-width: 1; }
+#wave-chop  { stroke: rgba(255, 255, 255, 0.22); stroke-width: 0.75; }
 #wave-mean  { stroke: #00CED1;                   stroke-width: 1.5; }
 #wave-swell { stroke: #FF1493;                   stroke-width: 2.5; }
 

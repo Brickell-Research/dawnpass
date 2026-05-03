@@ -40,7 +40,7 @@ const STALE_THRESHOLD_MS = 2 * 60 * 60 * 1000;  // 2 hours
 const wave = {
   swell: { amp: 0, lambda: 200, period_s: null, phase: 0 },
   mean:  { amp: 0, lambda: 200, period_s: null, phase: 0 },
-  chop:  { amp: 0, lambda: 60,  period_s: 2,    phase: 0 },
+  chop:  { amp: 0, lambda: 30,  period_s: 2,    phase: 0 },
 };
 
 async function load() {
@@ -105,7 +105,7 @@ function render(data) {
   //
   //   swell — Hs * 30 px amp (clamp 6..45),   Tp * 30 px λ (clamp 60..400)
   //   mean  — Hs * 18 px amp (clamp 4..30),   Tm * 30 px λ (clamp 60..400)
-  //   chop  — ws * 1.5 px amp (clamp 0..12),  fixed 60px λ, fixed 2s period
+  //   chop  — ws * 0.75 px amp (clamp 0..6),  fixed 30px λ, fixed 2s period
   //
   // Tm is source-bounded: only honored when the picked source is the buoy
   // (since marine forecast doesn't ship avg_period_s and we don't mix
@@ -132,7 +132,7 @@ function render(data) {
     wave.mean.period_s  = Tm;
 
     const ws = r.wind_speed_ms ?? 0;
-    wave.chop.amp = ws > 3 ? clamp(ws * 1.5, 0, 12) : 0;
+    wave.chop.amp = ws > 3 ? clamp(ws * 0.75, 0, 6) : 0;
   } else {
     // All wave fields null → breath fallback on mean only.
     wave.swell.amp     = 0;
@@ -297,8 +297,17 @@ function stopMotion() {
 
 function drawAll() {
   drawLayer(els.swell, wave.swell);
-  drawLayer(els.mean,  wave.mean);
-  drawLayer(els.chop,  wave.chop);
+  // Skip mean when it would just be a smaller copy of swell (same period →
+  // same shape, drawn under swell, pure visual noise). Honest about provenance:
+  // a marine-source day with no Tm shows as swell + chop, not three-component.
+  const meanCollapsed = wave.mean.period_s === wave.swell.period_s
+    && wave.mean.period_s != null;
+  if (meanCollapsed) {
+    els.mean.setAttribute('d', '');
+  } else {
+    drawLayer(els.mean, wave.mean);
+  }
+  drawLayer(els.chop, wave.chop);
 }
 
 function drawLayer(pathEl, layer) {
