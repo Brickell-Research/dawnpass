@@ -243,6 +243,65 @@ h1 {
   }
 }
 
+.notes {
+  margin-bottom: 1.6em;
+  padding: 1rem 1.4rem;
+  background: #0a0a14;
+  border: 1px solid #1a1a2e;
+  border-radius: 8px;
+}
+
+.notes-title {
+  font-family: 'JetBrains Mono', monospace;
+  color: #FF1493;
+  font-size: 0.9em;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.6rem;
+}
+
+.notes-title::before { content: "// "; color: #7d8793; }
+
+.notes-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.82em;
+  color: #c8d4dc;
+}
+
+.notes-list li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  line-height: 1.5;
+}
+
+.notes-list li::before {
+  content: '';
+  flex-shrink: 0;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  margin-top: 0.45em;
+}
+
+.notes-list strong {
+  font-family: 'JetBrains Mono', monospace;
+  color: #E0FFFF;
+  font-weight: 600;
+  margin-right: 0.2em;
+}
+
+.notes-list em {
+  font-style: italic;
+  color: #E0FFFF;
+}
+
+.notes-cyan::before { background: #00CED1; }
+.notes-pink::before { background: #FF1493; }
+.notes-tide::before { background: #7d8793; }
+
 .status {
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.9em;

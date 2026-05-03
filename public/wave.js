@@ -28,8 +28,26 @@ const els = {
   compassLabel: document.getElementById('wave-compass-label'),
   card:         document.querySelector('.now'),
   stalePill:    document.getElementById('stale-pill'),
-  mapSwell:     document.getElementById('map-swell'),
+  mapSwell:        document.getElementById('map-swell'),
+  mapSwellArrows:  document.getElementById('map-swell-arrows'),
+  mapWind:         document.getElementById('map-wind'),
+  mapWindArrow:    document.getElementById('map-wind-arrow'),
 };
+
+// Map directional indicator constants. Both arrows visualize propagation
+// (where the swell/wind is heading); the cardinal label names the source
+// (where it's coming from). Convention is documented in the page's "notes"
+// section. Rotation math:
+//   propagation = (fromDeg + 180) mod 360
+//   rotation    = propagation - <natural compass angle of the arrow as drawn>
+//
+// SWELL_NATURAL_DEG: the three diagonal swell arrows are drawn pointing NE
+//   (compass ~56°). For wave-from-225° (SW) we want propagation 45°, so
+//   rotate by 45 - 56 = -11° (small adjustment, arrows still feel SW-ish).
+// WIND_NATURAL_DEG: the wind arrow is drawn horizontally pointing East
+//   (compass 90°). Cleaner zero-baseline.
+const SWELL_NATURAL_DEG = 56;
+const WIND_NATURAL_DEG = 90;
 
 const STALE_THRESHOLD_MS = 2 * 60 * 60 * 1000;  // 2 hours
 
@@ -81,13 +99,21 @@ function render(data) {
 
   renderTide(els.tide, tide);
 
-  // === Live map SW label (notebook chart) ===
-  // Same source-precedence as the wave picker, just for direction:
-  //   buoy.mean_wave_direction_deg  →  cardinal()   (sensor truth)
-  //   marine.wave_direction_deg     →  cardinal()   (model fallback)
-  //   else                          →  keep the static "SW" placeholder
-  const dir = pickWaveDirection(r, marine);
-  if (dir != null) els.mapSwell.textContent = cardinal(dir);
+  // === Live map directional indicators (notebook chart) ===
+  // Swell arrows + label rotate with the picked source's wave direction.
+  // Wind arrow + label rotate with the buoy's wind direction. See notes
+  // section on the page for the convention (cardinal = source, arrow =
+  // propagation).
+  const swellDir = pickWaveDirection(r, marine);
+  if (swellDir != null) {
+    els.mapSwell.textContent = cardinal(swellDir);
+    rotateMapArrow(els.mapSwellArrows, swellDir, SWELL_NATURAL_DEG, 42, 195);
+  }
+
+  if (r.wind_direction_deg != null) {
+    els.mapWind.textContent = cardinal(r.wind_direction_deg);
+    rotateMapArrow(els.mapWindArrow, r.wind_direction_deg, WIND_NATURAL_DEG, 170, 100);
+  }
 
   // Spot identity now lives in the now-map illustration; no text pill.
   els.updated.textContent = r.observed_at_utc
@@ -221,6 +247,17 @@ function pickWaveDirection(buoy, marine) {
   if (buoy && buoy.mean_wave_direction_deg != null) return buoy.mean_wave_direction_deg;
   if (marine && marine.wave_direction_deg != null) return marine.wave_direction_deg;
   return null;
+}
+
+// Rotate a map arrow group so its drawn direction aligns with the
+// propagation of `fromDeg` (which is the bearing the wave/wind is *coming
+// from*). naturalDeg is the compass angle the arrow already points at when
+// the rotation is 0. cx/cy is the rotation center.
+function rotateMapArrow(group, fromDeg, naturalDeg, cx, cy) {
+  if (!group) return;
+  const propagationDeg = (fromDeg + 180) % 360;
+  const rotation = propagationDeg - naturalDeg;
+  group.setAttribute('transform', `rotate(${rotation.toFixed(1)} ${cx} ${cy})`);
 }
 
 function setStatus(msg) {
