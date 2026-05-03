@@ -177,11 +177,13 @@ h1 {
 
 .wave-compass-icon { display: block; }
 
-/* Three superimposed components, painted bottom→top in DOM order:
-   chop (high-freq surface texture), mean sea, dominant swell. */
-#wave-chop  { stroke: rgba(255, 255, 255, 0.22); stroke-width: 0.75; }
-#wave-mean  { stroke: #00CED1;                   stroke-width: 1.5; }
-#wave-swell { stroke: #FF1493;                   stroke-width: 2.5; }
+/* Three superimposed components, painted bottom→top in DOM order. Colors
+   align with the rest of the page (notes section + map): cyan = swell,
+   pink = wind, muted white = mean (no concept slot of its own).
+   Chop is wind-driven ripple, so it carries the pink wind color. */
+#wave-chop  { stroke: #FF1493;                   stroke-width: 0.75; }
+#wave-mean  { stroke: rgba(255, 255, 255, 0.4);  stroke-width: 1.5; }
+#wave-swell { stroke: #00CED1;                   stroke-width: 2.5; }
 
 .now-updated {
   font-family: 'JetBrains Mono', monospace;
