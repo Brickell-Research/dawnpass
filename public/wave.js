@@ -79,7 +79,7 @@ function render(data) {
 
   els.wind.textContent = formatWind(r.wind_speed_ms, r.wind_direction_deg);
 
-  els.tide.textContent = formatTide(tide);
+  renderTide(els.tide, tide);
 
   // === Live map SW label (notebook chart) ===
   // Same source-precedence as the wave picker, just for direction:
@@ -257,13 +257,23 @@ function formatTimeOnly(iso) {
   return d.toLocaleTimeString([], TIME_OPTS);
 }
 
-function formatTide(t) {
-  if (!t) return '—';
-  const ht = t.height_ft != null ? `${t.height_ft.toFixed(1)} ft` : '—';
-  const trend = t.trend ?? '';
-  const ne = t.next_event;
-  const evt = ne ? `${ne.kind} at ${formatTimeOnly(ne.at_utc)}` : '';
-  return [ht, trend, evt].filter(Boolean).join(' · ');
+// Render the tide line as separate `·`-joined chunks so each chunk wraps
+// as a unit on narrow viewports — never mid-string ("high at" / "12:35 MDT").
+function renderTide(el, t) {
+  el.textContent = '';
+  if (!t) { el.textContent = '—'; return; }
+  const parts = [];
+  if (t.height_ft != null) parts.push(`${t.height_ft.toFixed(1)} ft`);
+  if (t.trend) parts.push(t.trend);
+  if (t.next_event) parts.push(`${t.next_event.kind} at ${formatTimeOnly(t.next_event.at_utc)}`);
+  if (parts.length === 0) { el.textContent = '—'; return; }
+  parts.forEach((text, i) => {
+    if (i > 0) el.appendChild(document.createTextNode(' · '));
+    const span = document.createElement('span');
+    span.className = 'tide-chunk';
+    span.textContent = text;
+    el.appendChild(span);
+  });
 }
 
 function clamp(v, lo, hi) {

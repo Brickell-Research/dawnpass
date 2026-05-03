@@ -149,6 +149,8 @@ h1 {
   font-size: 0.95em;
 }
 
+.tide-chunk { display: inline-block; white-space: nowrap; }
+
 .wave-legend {
   display: flex;
   flex-direction: column;
