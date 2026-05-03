@@ -73,7 +73,7 @@ h1 {
 
 .now-score-value::after {
   content: " /10";
-  color: #7d8793; /* same size + weight as the value, only colour differs */
+  color: #E0FFFF; /* full match with the numerator — same font, weight, size, colour */
 }
 
 .now-score-verdict {

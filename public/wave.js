@@ -38,7 +38,13 @@ const els = {
   nowScoreVerdict: document.getElementById('now-score-verdict'),
   windowWhen:      document.getElementById('window-when'),
   windowMeta:      document.getElementById('window-meta'),
+  mapAirTemp:      document.getElementById('map-air-temp'),
+  mapWaterTemp:    document.getElementById('map-water-temp'),
 };
+
+const C_TO_F_OFFSET = 32;
+const C_TO_F_MULT = 9 / 5;
+function celsiusToF(c) { return c * C_TO_F_MULT + C_TO_F_OFFSET; }
 
 // Beach orientation for wind-quality classification. PAG faces west, so
 // the beach normal (perpendicular pointing to open water) is 270°. Moves
@@ -135,6 +141,19 @@ function render(data) {
     els.mapWind.textContent = cardinal(r.wind_direction_deg);
     rotateMapArrow(els.mapWindArrow, r.wind_direction_deg, WIND_NATURAL_DEG, 170, 100);
   }
+
+  // Map temps — air from Open-Meteo Forecast (coastal at 2m, surfer-relevant),
+  // water from NDBC buoy 42036 (offshore but close enough in the Gulf).
+  const windKey = Object.keys(data).find(k => k.startsWith('wind_'));
+  const windBlock = windKey ? data[windKey] : null;
+  els.mapAirTemp.textContent =
+    windBlock?.air_temp_c != null
+      ? `${celsiusToF(windBlock.air_temp_c).toFixed(0)}°F`
+      : '—';
+  els.mapWaterTemp.textContent =
+    r.wtmp_c != null
+      ? `${celsiusToF(r.wtmp_c).toFixed(0)}°F`
+      : '—';
 
   // 3-day outlook strip — wave + tide highs/lows.
   renderOutlook(els.outlookGrid, marine?.forecast ?? [], tide);
@@ -552,15 +571,13 @@ function sameLocalDay(a, b) {
       && a.getDate() === b.getDate();
 }
 
-// "2026-05-04T02:40:00Z" → "10:40p" in the user's local time.
+// "2026-05-04T02:40:00Z" → "22:40" in the user's local time (24-hour).
 function localTime(iso) {
   const d = new Date(iso);
   if (isNaN(d.getTime())) return '';
-  const h = d.getHours();
+  const hh = String(d.getHours()).padStart(2, '0');
   const mm = String(d.getMinutes()).padStart(2, '0');
-  const ampm = h >= 12 ? 'p' : 'a';
-  const h12 = h % 12 === 0 ? 12 : h % 12;
-  return `${h12}:${mm}${ampm}`;
+  return `${hh}:${mm}`;
 }
 
 function formatWaveRange(day) {
@@ -644,13 +661,9 @@ function formatWindowRange(startIso, endIso) {
 }
 
 function formatLocalShortTime(d) {
-  const h = d.getHours();
-  const m = d.getMinutes();
-  const ampm = h >= 12 ? 'pm' : 'am';
-  const h12 = h % 12 === 0 ? 12 : h % 12;
-  return m === 0
-    ? `${h12}${ampm}`
-    : `${h12}:${String(m).padStart(2, '0')}${ampm}`;
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return `${hh}:${mm}`;
 }
 
 load();

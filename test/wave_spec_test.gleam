@@ -33,6 +33,8 @@ fn buoy(
     mean_wave_direction_deg: dir,
     wind_direction_deg: Some(30),
     wind_speed_ms: ws,
+    atmp_c: option.None,
+    wtmp_c: option.None,
   )
 }
 
@@ -151,12 +153,18 @@ fn read_fixture(name: String) -> String {
 }
 
 pub fn render_path_swell_divergent_test() {
-  wave_spec.render_path(Layer(amp: 24.0, lambda: 240.0, period_s: Some(8.0)), 0.0)
+  wave_spec.render_path(
+    Layer(amp: 24.0, lambda: 240.0, period_s: Some(8.0)),
+    0.0,
+  )
   |> should.equal(read_fixture("render_path_swell_divergent.txt"))
 }
 
 pub fn render_path_mean_divergent_test() {
-  wave_spec.render_path(Layer(amp: 14.4, lambda: 120.0, period_s: Some(4.0)), 0.0)
+  wave_spec.render_path(
+    Layer(amp: 14.4, lambda: 120.0, period_s: Some(4.0)),
+    0.0,
+  )
   |> should.equal(read_fixture("render_path_mean_divergent.txt"))
 }
 
@@ -166,7 +174,10 @@ pub fn render_path_chop_test() {
 }
 
 pub fn render_path_marine_mid_tick_test() {
-  wave_spec.render_path(Layer(amp: 12.6, lambda: 126.0, period_s: Some(4.15)), 0.5)
+  wave_spec.render_path(
+    Layer(amp: 12.6, lambda: 126.0, period_s: Some(4.15)),
+    0.5,
+  )
   |> should.equal(read_fixture("render_path_marine_mid_tick.txt"))
 }
 

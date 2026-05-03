@@ -111,8 +111,7 @@ pub fn main() -> Nil {
     )
   {
     Ok(_) -> io.println("wrote " <> index_output_path)
-    Error(e) ->
-      io.println("index write failed: " <> string.inspect(e))
+    Error(e) -> io.println("index write failed: " <> string.inspect(e))
   }
 }
 

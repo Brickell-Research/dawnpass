@@ -2,4 +2,4 @@
 version: 2.0.0
 title: ndbc 42036 latest reading
 ---
-{"station":"42036","observed_at_utc":"2026-05-03T18:40:00Z","wave_height_m":1.5,"dominant_period_s":null,"avg_period_s":4.7,"mean_wave_direction_deg":11,"wind_direction_deg":30,"wind_speed_ms":7.0}
+{"station":"42036","observed_at_utc":"2026-05-03T18:40:00Z","wave_height_m":1.5,"dominant_period_s":null,"avg_period_s":4.7,"mean_wave_direction_deg":11,"wind_direction_deg":30,"wind_speed_ms":7.0,"atmp_c":20.8,"wtmp_c":23.7}

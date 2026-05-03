@@ -28,6 +28,12 @@ pub type BuoyReading {
     mean_wave_direction_deg: Option(Int),
     wind_direction_deg: Option(Int),
     wind_speed_ms: Option(Float),
+    /// Air temperature at the buoy (Celsius). Offshore reading; for
+    /// surfer-relevant air temp prefer Open-Meteo `temperature_2m`.
+    atmp_c: Option(Float),
+    /// Water (sea-surface) temperature at the buoy (Celsius). Offshore;
+    /// close enough to beach water in the Gulf for surf decisions.
+    wtmp_c: Option(Float),
   )
 }
 
@@ -100,7 +106,40 @@ pub fn parse_realtime2_row(
     |> string.split(" ")
     |> list.filter(fn(c) { c != "" })
 
+  // Cols 12-14 are PRES, ATMP, WTMP. We grab ATMP + WTMP and ignore PRES.
+  // Older buoys without atmospheric sensors return rows with only the wave
+  // columns; the extended pattern falls through and we set both temps None.
   case cols {
+    [
+      yy,
+      mm,
+      dd,
+      hh,
+      mn,
+      wdir,
+      wspd,
+      _gst,
+      wvht,
+      dpd,
+      apd,
+      mwd,
+      _pres,
+      atmp,
+      wtmp,
+      ..
+    ] ->
+      Ok(BuoyReading(
+        station:,
+        observed_at_utc: iso_timestamp(yy, mm, dd, hh, mn),
+        wave_height_m: parse_optional_float(wvht),
+        dominant_period_s: parse_optional_float(dpd),
+        avg_period_s: parse_optional_float(apd),
+        mean_wave_direction_deg: parse_optional_int(mwd),
+        wind_direction_deg: parse_optional_int(wdir),
+        wind_speed_ms: parse_optional_float(wspd),
+        atmp_c: parse_optional_float(atmp),
+        wtmp_c: parse_optional_float(wtmp),
+      ))
     [yy, mm, dd, hh, mn, wdir, wspd, _gst, wvht, dpd, apd, mwd, ..] ->
       Ok(BuoyReading(
         station:,
@@ -111,6 +150,8 @@ pub fn parse_realtime2_row(
         mean_wave_direction_deg: parse_optional_int(mwd),
         wind_direction_deg: parse_optional_int(wdir),
         wind_speed_ms: parse_optional_float(wspd),
+        atmp_c: None,
+        wtmp_c: None,
       ))
     _ -> Error(ParseError("unexpected NDBC row: " <> row))
   }
@@ -157,6 +198,8 @@ pub fn encode(r: BuoyReading) -> json.Json {
     ),
     #("wind_direction_deg", encode_optional(r.wind_direction_deg, json.int)),
     #("wind_speed_ms", encode_optional(r.wind_speed_ms, json.float)),
+    #("atmp_c", encode_optional(r.atmp_c, json.float)),
+    #("wtmp_c", encode_optional(r.wtmp_c, json.float)),
   ])
 }
 
