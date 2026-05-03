@@ -18,7 +18,10 @@ const els = {
   tide:      document.getElementById('m-tide'),
   source:    document.getElementById('now-source'),
   updated:   document.getElementById('now-updated'),
-  path:      document.getElementById('wave-path'),
+  // Scaffolding: single-line render targets wave-mean (turquoise) so the
+  // breath fallback color is preserved. Task 12 will replace this with
+  // explicit per-layer els (swell/mean/chop).
+  path:      document.getElementById('wave-mean'),
   card:      document.querySelector('.now'),
   stalePill: document.getElementById('stale-pill'),
 };
@@ -47,26 +50,31 @@ async function load() {
 }
 
 function render(data) {
-  // JSON shape: { "buoy_<station>": {...}, "tide_<station>": {...}, ... }
-  const buoyKey = Object.keys(data).find(k => k.startsWith('buoy_'));
-  const tideKey = Object.keys(data).find(k => k.startsWith('tide_'));
-  const r = buoyKey ? data[buoyKey] : null;
-  const tide = tideKey ? data[tideKey] : null;
+  // JSON shape: { "buoy_<station>": {...}, "tide_<station>": {...}, "marine_<spot>": {...}, ... }
+  const buoyKey   = Object.keys(data).find(k => k.startsWith('buoy_'));
+  const tideKey   = Object.keys(data).find(k => k.startsWith('tide_'));
+  const marineKey = Object.keys(data).find(k => k.startsWith('marine_'));
+  const r      = buoyKey   ? data[buoyKey]   : null;
+  const tide   = tideKey   ? data[tideKey]   : null;
+  const marine = marineKey ? data[marineKey] : null;
   if (!r) return setStatus('no buoy reading');
 
-  els.wave.textContent = r.wave_height_m != null
-    ? `${(r.wave_height_m * FEET_PER_M).toFixed(1)} ft`
+  const picked = pickWaveSource(r, marine);
+
+  els.wave.textContent = picked.heightM != null
+    ? `${(picked.heightM * FEET_PER_M).toFixed(1)} ft`
     : '—';
 
-  els.period.textContent = r.dominant_period_s != null
-    ? `${r.dominant_period_s.toFixed(0)} s`
+  els.period.textContent = picked.periodS != null
+    ? `${picked.periodS.toFixed(0)} s`
     : '—';
 
   els.wind.textContent = formatWind(r.wind_speed_ms, r.wind_direction_deg);
 
   els.tide.textContent = formatTide(tide);
 
-  els.source.textContent = `buoy ${r.station}`;
+  // Spot name, not sensor name. Hardcoded until spots/<spot>.json lands.
+  els.source.textContent = 'Pass-a-Grille';
   els.updated.textContent = r.observed_at_utc
     ? `updated ${formatTimestamp(r.observed_at_utc)}`
     : 'no timestamp';
@@ -83,10 +91,26 @@ function render(data) {
     els.stalePill.setAttribute('hidden', '');
   }
 
-  if (r.wave_height_m != null && r.dominant_period_s != null) {
-    wave.amplitude  = clamp(r.wave_height_m * 20, 5, 40);
-    wave.wavelength = clamp(r.dominant_period_s * 30, 60, 400);
-    wave.period_s   = r.dominant_period_s;
+  // === wave-animation mapping ===
+  //
+  // Map ocean physics → SVG viewBox space (W=800, H=100, so 1 px == 1 unit).
+  //   amplitude  = clamp(Hs_m * 20, 5, 40)    px
+  //     0.25m → 5  (floor: even tiny chop renders visibly)
+  //     1.0m  → 20 (mid)
+  //     2.0m+ → 40 (cap: head-high days don't blow past viewBox)
+  //   wavelength = clamp(Tp_s * 30, 60, 400)  px
+  //     3s    → 90  (short period, choppy look)
+  //     8s    → 240 (rolling swell)
+  //     14s+  → 400 (cap: roughly one wave per SVG width)
+  //
+  // The 20× / 30× multipliers were chosen so a "real but unspectacular Gulf
+  // day" (1m / 8s) lands mid-frame. Numbers are taste, not science — adjust
+  // them, don't add more state. When picker returns null, fall through to
+  // breath mode (slow amplitude oscillation, no real Tp); see Motion section.
+  if (picked.heightM != null && picked.periodS != null) {
+    wave.amplitude  = clamp(picked.heightM * 20, 5, 40);
+    wave.wavelength = clamp(picked.periodS * 30, 60, 400);
+    wave.period_s   = picked.periodS;
   } else {
     wave.wavelength = 200;
     wave.period_s   = null;
@@ -94,6 +118,47 @@ function render(data) {
   }
 
   startMotion();
+}
+
+// === wave-source picking ===
+//
+// Choose which source feeds the wave SVG and the wave/period cells.
+//
+// Inputs:
+//   buoy   — latest NDBC reading. Sensor truth, but routinely null on wave
+//            fields in calm Gulf conditions (42036 is notorious).
+//   marine — latest Open-Meteo Marine reading. Forecast model, not sensor;
+//            never silent for valid coordinates, less authoritative.
+//
+// Output: { heightM, periodS, sourceLabel }.
+//
+// Rule: buoy when both Hs and Tp are present, else marine when both are
+// present, else nothing. All-or-nothing per source — we never mix Hs from
+// one with Tp from another. Mixed-source reads are confusing; per-field
+// provenance is a future refactor (the Conditions step).
+//
+// sourceLabel is internal-only today. The UI shows the spot name, not the
+// data source. Step 6 surfaces provenance more carefully.
+function pickWaveSource(buoy, marine) {
+  if (buoy && buoy.wave_height_m != null && buoy.dominant_period_s != null) {
+    return {
+      heightM: buoy.wave_height_m,
+      periodS: buoy.dominant_period_s,
+      sourceLabel: `buoy ${buoy.station}`,
+    };
+  }
+  if (marine && marine.wave_height_m != null && marine.wave_period_s != null) {
+    return {
+      heightM: marine.wave_height_m,
+      periodS: marine.wave_period_s,
+      sourceLabel: 'marine · pag',
+    };
+  }
+  return {
+    heightM: null,
+    periodS: null,
+    sourceLabel: buoy ? `buoy ${buoy.station}` : '—',
+  };
 }
 
 function setStatus(msg) {
