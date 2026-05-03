@@ -1,0 +1,5 @@
+---
+version: 2.0.0
+title: wave_spec: buoy with Tp/Tm divergence
+---
+{"source":"buoy:42036","height_m":0.8,"period_s":8.0,"direction_deg":250,"swell":{"amp":24.0,"lambda":240.0,"period_s":8.0},"mean":{"amp":14.4,"lambda":120.0,"period_s":4.0},"chop":{"amp":6.0,"lambda":30.0,"period_s":2.0}}

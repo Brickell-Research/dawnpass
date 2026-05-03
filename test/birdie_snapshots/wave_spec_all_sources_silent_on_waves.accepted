@@ -1,0 +1,5 @@
+---
+version: 2.0.0
+title: wave_spec: all sources silent on waves
+---
+{"source":"silent","height_m":null,"period_s":null,"direction_deg":null,"swell":{"amp":0.0,"lambda":200.0,"period_s":null},"mean":{"amp":0.0,"lambda":200.0,"period_s":null},"chop":{"amp":0.0,"lambda":30.0,"period_s":2.0}}

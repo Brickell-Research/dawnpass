@@ -1,0 +1,5 @@
+---
+version: 2.0.0
+title: wave_spec: wind under 3 m/s drops chop layer
+---
+{"source":"buoy:42036","height_m":0.6,"period_s":6.0,"direction_deg":180,"swell":{"amp":18.0,"lambda":180.0,"period_s":6.0},"mean":{"amp":10.799999999999999,"lambda":150.0,"period_s":5.0},"chop":{"amp":0.0,"lambda":30.0,"period_s":2.0}}

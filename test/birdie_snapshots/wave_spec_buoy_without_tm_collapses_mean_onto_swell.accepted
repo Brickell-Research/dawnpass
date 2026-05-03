@@ -1,0 +1,5 @@
+---
+version: 2.0.0
+title: wave_spec: buoy without Tm collapses mean onto swell
+---
+{"source":"buoy:42036","height_m":0.6,"period_s":6.0,"direction_deg":225,"swell":{"amp":18.0,"lambda":180.0,"period_s":6.0},"mean":{"amp":10.799999999999999,"lambda":180.0,"period_s":6.0},"chop":{"amp":5.25,"lambda":30.0,"period_s":2.0}}

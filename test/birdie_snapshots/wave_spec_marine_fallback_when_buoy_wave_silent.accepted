@@ -1,0 +1,5 @@
+---
+version: 2.0.0
+title: wave_spec: marine fallback when buoy wave-silent
+---
+{"source":"marine:pag","height_m":0.44,"period_s":4.15,"direction_deg":325,"swell":{"amp":13.2,"lambda":124.50000000000001,"period_s":4.15},"mean":{"amp":7.92,"lambda":124.50000000000001,"period_s":4.15},"chop":{"amp":6.0,"lambda":30.0,"period_s":2.0}}

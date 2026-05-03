@@ -1,0 +1,5 @@
+---
+version: 2.0.0
+title: wave_spec: amplitudes and wavelengths respect clamp bounds
+---
+{"source":"buoy:42036","height_m":5.0,"period_s":0.5,"direction_deg":0,"swell":{"amp":45.0,"lambda":60.0,"period_s":0.5},"mean":{"amp":30.0,"lambda":60.0,"period_s":0.5},"chop":{"amp":6.0,"lambda":30.0,"period_s":2.0}}
