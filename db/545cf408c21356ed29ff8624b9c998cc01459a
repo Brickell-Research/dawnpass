@@ -1,0 +1,44 @@
+public/data/latest.json
+  7291b6226c6d2785 1
+src/dawnpass/sources/noaa_tides.gleam
+  7291b6226c6d2785 51-53,120,125,144,168
+src/dawnpass/ingest.gleam
+  7291b6226c6d2785 27,31
+src/dawnpass/sources/open_meteo_marine.gleam
+  7291b6226c6d2785 35-37,63,68,102
+public/styles.css
+  578f1016a6fb90d1 230-231
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "db545cf408c21356ed29ff8624b9c998cc01459a",
+  "prompts": {
+    "578f1016a6fb90d1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "dc41a10a-5539-4849-9e14-221fb613fdae",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "robertDurst",
+      "messages": [],
+      "total_additions": 2,
+      "total_deletions": 1,
+      "accepted_lines": 2,
+      "overriden_lines": 0
+    },
+    "7291b6226c6d2785": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c8af36c2-aeb7-4df0-bfb2-b6ebb9a277bb",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "robertDurst",
+      "messages": [],
+      "total_additions": 3,
+      "total_deletions": 3,
+      "accepted_lines": 16,
+      "overriden_lines": 0
+    }
+  }
+}
