@@ -15,6 +15,7 @@ const els = {
   wave:    document.getElementById('m-wave'),
   period:  document.getElementById('m-period'),
   wind:    document.getElementById('m-wind'),
+  tide:    document.getElementById('m-tide'),
   source:  document.getElementById('now-source'),
   updated: document.getElementById('now-updated'),
   path:    document.getElementById('wave-path'),
@@ -42,10 +43,11 @@ async function load() {
 }
 
 function render(data) {
-  // v0 JSON shape: { "buoy_<station>": { ...BuoyReading } }.
-  // Future shapes (tide, marine) will add sibling keys.
+  // JSON shape: { "buoy_<station>": {...}, "tide_<station>": {...}, ... }
   const buoyKey = Object.keys(data).find(k => k.startsWith('buoy_'));
+  const tideKey = Object.keys(data).find(k => k.startsWith('tide_'));
   const r = buoyKey ? data[buoyKey] : null;
+  const tide = tideKey ? data[tideKey] : null;
   if (!r) return setStatus('no buoy reading');
 
   els.wave.textContent = r.wave_height_m != null
@@ -57,6 +59,8 @@ function render(data) {
     : '—';
 
   els.wind.textContent = formatWind(r.wind_speed_ms, r.wind_direction_deg);
+
+  els.tide.textContent = formatTide(tide);
 
   els.source.textContent = `buoy ${r.station}`;
   els.updated.textContent = r.observed_at_utc
@@ -101,6 +105,23 @@ function formatTimestamp(iso) {
   return `${hh}:${mm} UTC · ${d.getUTCMonth() + 1}/${d.getUTCDate()}`;
 }
 
+function formatTimeOnly(iso) {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  const hh = String(d.getUTCHours()).padStart(2, '0');
+  const mm = String(d.getUTCMinutes()).padStart(2, '0');
+  return `${hh}:${mm} UTC`;
+}
+
+function formatTide(t) {
+  if (!t) return '—';
+  const ht = t.height_ft != null ? `${t.height_ft.toFixed(1)} ft` : '—';
+  const trend = t.trend ?? '';
+  const ne = t.next_event;
+  const evt = ne ? `${ne.kind} at ${formatTimeOnly(ne.at_utc)}` : '';
+  return [ht, trend, evt].filter(Boolean).join(' · ');
+}
+
 function clamp(v, lo, hi) {
   return Math.max(lo, Math.min(hi, v));
 }
@@ -125,6 +146,11 @@ let breathRafId = null;
 
 function startMotion() {
   stopMotion();
+  // Honor OS-level reduced-motion preference: render one static frame, no loop.
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    drawWave();
+    return;
+  }
   if (wave.period_s != null) {
     drawWave();
     stepIntervalId = setInterval(() => {
@@ -170,3 +196,7 @@ function drawWave() {
 
 load();
 startMotion();
+
+// Re-evaluate motion mode if the OS reduced-motion preference toggles live.
+window.matchMedia('(prefers-reduced-motion: reduce)')
+  .addEventListener('change', startMotion);

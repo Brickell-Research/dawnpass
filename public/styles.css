@@ -85,6 +85,29 @@ h1 {
   font-size: 1.05em;
 }
 
+.tide-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.8rem;
+  padding-top: 0.8rem;
+  margin-bottom: 1rem;
+  border-top: 1px dashed #1a1a2e;
+}
+
+.tide-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72em;
+  color: #7d8793;
+  letter-spacing: 0.08em;
+  flex-shrink: 0;
+}
+
+.tide-value {
+  font-family: 'JetBrains Mono', monospace;
+  color: #E0FFFF;
+  font-size: 0.95em;
+}
+
 .now-wave {
   display: block;
   width: 100%;
@@ -101,6 +124,17 @@ h1 {
 
 @media (max-width: 480px) {
   .now-grid { grid-template-columns: 1fr 1fr; }
+}
+
+/* Defensive: any future CSS animations/transitions inherit a near-instant duration
+   when the user has requested reduced motion. The wave.js loop also self-disables. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+  }
 }
 
 .status {
