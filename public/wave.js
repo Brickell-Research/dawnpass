@@ -3,13 +3,13 @@
 // Reads the most recent buoy + marine + tide readings from the shared JSON
 // file the Gleam ingest writes, populates the Now card, and renders a
 // three-component animated SVG:
-//   dominant swell (pink) — Hs + Tp
-//   mean sea (turquoise) — Hs + Tm   (collapses onto swell when Tm absent)
-//   wind chop  (white@0.35) — wind_speed_ms (period is a fixed 2s)
+//   dominant swell (cyan)    — Hs + Tp
+//   mean sea (white@0.4)     — Hs + Tm   (collapses onto swell when Tm absent)
+//   wind chop (pink)         — wind_speed_ms (period is a fixed 2s)
 //
 // Degrades gracefully: missing fields render "—"; missing data file shows a
-// status hint; if all wave fields are null, only the turquoise mean layer
-// runs as a slow breath + drift ("the buoy is silent but we're listening").
+// status hint; if all wave fields are null, only the mean layer runs as a
+// slow breath + drift ("the buoy is silent but we're listening").
 
 const KNOTS_PER_MS = 1.94384;
 const FEET_PER_M = 3.28084;
@@ -23,9 +23,6 @@ const els = {
   swell:        document.getElementById('wave-swell'),
   mean:         document.getElementById('wave-mean'),
   chop:         document.getElementById('wave-chop'),
-  compass:      document.getElementById('wave-compass'),
-  compassArrow: document.getElementById('wave-compass-arrow'),
-  compassLabel: document.getElementById('wave-compass-label'),
   card:         document.querySelector('.now'),
   stalePill:    document.getElementById('stale-pill'),
   mapSwell:        document.getElementById('map-swell'),
@@ -33,6 +30,7 @@ const els = {
   mapWind:         document.getElementById('map-wind'),
   mapWindArrow:    document.getElementById('map-wind-arrow'),
   windTag:         document.getElementById('m-wind-tag'),
+  waveTag:         document.getElementById('m-wave-tag'),
 };
 
 // Beach orientation for wind-quality classification. PAG faces west, so
@@ -117,10 +115,15 @@ function render(data) {
   // Swell arrows + label rotate with the picked source's wave direction.
   // Wind arrow + label rotate with the buoy's wind direction. Both arrows
   // point TOWARD the source (FROM bearing), matching the cardinal label.
+  // The wave metric-tag mirrors the swell cardinal so the now-card has a
+  // glance-level direction without depending on map literacy.
   const swellDir = pickWaveDirection(r, marine);
   if (swellDir != null) {
     els.mapSwell.textContent = cardinal(swellDir);
     rotateMapArrow(els.mapSwellArrows, swellDir, SWELL_NATURAL_DEG, 42, 195);
+    els.waveTag.textContent = cardinal(swellDir);
+  } else {
+    els.waveTag.textContent = '';
   }
 
   if (r.wind_direction_deg != null) {
@@ -182,8 +185,6 @@ function render(data) {
 
     const ws = r.wind_speed_ms ?? 0;
     wave.chop.amp = ws > 3 ? clamp(ws * 0.75, 0, 6) : 0;
-
-    updateCompass(r.mean_wave_direction_deg);
   } else {
     // All wave fields null → breath fallback on mean only.
     wave.swell.amp     = 0;
@@ -191,25 +192,9 @@ function render(data) {
     wave.mean.lambda   = 200;
     wave.mean.period_s = null;
     // mean.amp is owned by the breath loop in this mode; don't fight it
-
-    updateCompass(null);  // no waves to point at
   }
 
   startMotion();
-}
-
-// Top-right compass on the wave SVG. NDBC ships mean_wave_direction_deg as
-// "where waves come FROM" (compass bearing, 0=N, clockwise). Convention here:
-// arrow points TO the source (where waves come from), label is the cardinal
-// of that bearing. Hidden when bearing is null.
-function updateCompass(deg) {
-  if (deg == null) {
-    els.compass.setAttribute('hidden', '');
-    return;
-  }
-  els.compass.removeAttribute('hidden');
-  els.compassArrow.setAttribute('transform', `rotate(${deg})`);
-  els.compassLabel.textContent = cardinal(deg);
 }
 
 // === wave-source picking ===

@@ -24,6 +24,7 @@
   <main>
     <h1>dawnpass</h1>
     <p class="tagline">the watch is up.</p>
+    <p class="status">v0 · pre-release · forecast logic en route</p>
 
     <section class="now" aria-label="current conditions">
       <header class="now-header">
@@ -39,6 +40,7 @@
             <div class="metric">
               <span class="metric-label">wave</span>
               <span class="metric-value" id="m-wave">—</span>
+              <span class="metric-tag" id="m-wave-tag"></span>
             </div>
             <div class="metric">
               <span class="metric-label">period</span>
@@ -62,12 +64,6 @@
               <path id="wave-mean"  d="" fill="none" stroke-linecap="round"/>
               <path id="wave-swell" d="" fill="none" stroke-linecap="round"/>
             </svg>
-            <div class="wave-compass" id="wave-compass" hidden aria-label="swell direction">
-              <svg class="wave-compass-icon" viewBox="-10 -10 20 20" width="14" height="14" aria-hidden="true">
-                <path id="wave-compass-arrow" d="M0,-7 L5,5 L0,2 L-5,5 Z" fill="#7d8793"/>
-              </svg>
-              <span class="wave-compass-label" id="wave-compass-label">—</span>
-            </div>
           </div>
 
           <p class="now-updated" id="now-updated">awaiting data…</p>
@@ -205,8 +201,6 @@
         <li class="notes-tide"><strong>tide</strong> — observed level + trend, plus the next high/low time. Most Gulf longboard windows happen mid-tide on the drop.</li>
       </ul>
     </aside>
-
-    <p class="status">v0 · pre-release · forecast logic en route</p>
   </main>
 
   <footer>

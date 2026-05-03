@@ -72,8 +72,7 @@ h1 {
 .now[data-stale] .metric-value,
 .now[data-stale] .metric-tag,
 .now[data-stale] .tide-value,
-.now[data-stale] .now-wave,
-.now[data-stale] .wave-compass {
+.now[data-stale] .now-wave {
   opacity: 0.5;
 }
 
@@ -175,23 +174,6 @@ h1 {
   height: 80px;
 }
 
-.wave-compass {
-  position: absolute;
-  top: 0.4rem;
-  right: 0.5rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.1rem;
-  color: #7d8793;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.65em;
-  letter-spacing: 0.04em;
-  pointer-events: none;
-}
-
-.wave-compass-icon { display: block; }
-
 /* Three superimposed components, painted bottom→top in DOM order. Colors
    align with the rest of the page (notes section + map): cyan = swell,
    pink = wind, muted white = mean (no concept slot of its own).
@@ -292,11 +274,13 @@ h1 {
 
 .status {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.9em;
-  color: #8892a0;
+  font-size: 0.78em;
+  font-style: italic;
+  color: #7d8793;
+  letter-spacing: 0.02em;
+  margin-top: -1.4em;     /* tuck against the tagline */
+  margin-bottom: 2em;
 }
-
-.status::before { content: "# "; color: #7d8793; }
 
 a { color: #00CED1; text-decoration: none; }
 a:hover { text-decoration: underline; }
