@@ -1,0 +1,14 @@
+.gitignore
+  h_bf999c3f841c45 25
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "0abf7faa9af787129f8c83da43d8f7a26ba55a80",
+  "prompts": {},
+  "humans": {
+    "h_bf999c3f841c45": {
+      "author": "robertDurst"
+    }
+  }
+}
