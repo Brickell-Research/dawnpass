@@ -121,7 +121,7 @@ function render(data) {
   if (swellDir != null) {
     els.mapSwell.textContent = cardinal(swellDir);
     rotateMapArrow(els.mapSwellArrows, swellDir, SWELL_NATURAL_DEG, 42, 195);
-    els.waveTag.textContent = cardinal(swellDir);
+    els.waveTag.textContent = `from ${cardinal(swellDir)}`;
   } else {
     els.waveTag.textContent = '';
   }
