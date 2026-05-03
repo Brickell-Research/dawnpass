@@ -1,12 +1,10 @@
 //// Cross-source orchestration.
 ////
-//// Owns the file-write side and the JSON aggregation pattern. Source
-//// modules (sources/ndbc.gleam, future sources/noaa_tides.gleam, etc.)
+//// Source modules (sources/ndbc.gleam, sources/noaa_tides.gleam, etc.)
 //// own their own HTTP, parsing, and per-source encoding. ingest.gleam
-//// stitches results together and persists them to disk for the static
-//// site to fetch.
+//// just persists a list of pre-encoded JSON blocks to disk under
+//// stable per-source keys for the static site to fetch.
 
-import dawnpass/sources/ndbc.{type BuoyReading}
 import filepath
 import gleam/json
 import gleam/result
@@ -17,15 +15,13 @@ pub type IngestError {
   WriteError(String)
 }
 
-/// Write a buoy reading to disk as JSON.
-/// Creates intermediate directories if needed.
+/// Write a list of `(key, encoded_json)` blocks as a single JSON object
+/// at the given path. Creates intermediate directories if needed.
 pub fn write_latest(
-  reading: BuoyReading,
+  blocks: List(#(String, json.Json)),
   to path: String,
 ) -> Result(Nil, IngestError) {
-  let body =
-    json.object([#("buoy_" <> reading.station, ndbc.encode(reading))])
-    |> json.to_string
+  let body = json.object(blocks) |> json.to_string
 
   use _ <- result.try(
     simplifile.create_directory_all(filepath.directory_name(path))
