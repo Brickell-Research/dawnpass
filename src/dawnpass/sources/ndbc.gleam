@@ -32,7 +32,8 @@ pub type BuoyReading {
 }
 
 pub type NdbcError {
-  HttpError(String)
+  HttpError(httpc.HttpError)
+  InvalidUrl(String)
   ParseError(String)
 }
 
@@ -48,14 +49,14 @@ pub fn fetch_buoy(station: String) -> Result(BuoyReading, NdbcError) {
 
   use base_req <- result.try(
     request.to(url)
-    |> result.replace_error(HttpError("invalid url: " <> url)),
+    |> result.replace_error(InvalidUrl(url)),
   )
 
   let req = request.set_header(base_req, "user-agent", user_agent)
 
   use resp <- result.try(
     httpc.send(req)
-    |> result.map_error(fn(e) { HttpError(string.inspect(e)) }),
+    |> result.map_error(HttpError),
   )
 
   parse_realtime2_body(station, resp.body)
