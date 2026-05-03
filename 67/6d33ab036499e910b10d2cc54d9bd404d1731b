@@ -1,0 +1,38 @@
+public/index.html
+  578f1016a6fb90d1 57-62
+public/styles.css
+  578f1016a6fb90d1 81-83,136-160
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "676d33ab036499e910b10d2cc54d9bd404d1731b",
+  "prompts": {
+    "578f1016a6fb90d1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "dc41a10a-5539-4849-9e14-221fb613fdae",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "robertDurst",
+      "messages": [],
+      "total_additions": 34,
+      "total_deletions": 1,
+      "accepted_lines": 34,
+      "overriden_lines": 0
+    },
+    "943a12c024bc3eca": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5e176387-833f-49fe-aa04-a1eb689a40ce",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "robertDurst",
+      "messages": [],
+      "total_additions": 1299,
+      "total_deletions": 117,
+      "accepted_lines": 1665,
+      "overriden_lines": 0
+    }
+  }
+}
