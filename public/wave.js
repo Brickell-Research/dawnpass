@@ -1,12 +1,15 @@
 // dawnpass · client-side renderer for /data/latest.json
 //
-// Reads the most recent buoy reading from the shared JSON file the
-// Gleam ingest writes, populates the Now card, and runs an animated
-// SVG sine wave whose amplitude tracks Hs and wavelength tracks Tp.
+// Reads the most recent buoy + marine + tide readings from the shared JSON
+// file the Gleam ingest writes, populates the Now card, and renders a
+// three-component animated SVG:
+//   dominant swell (pink) — Hs + Tp
+//   mean sea (turquoise) — Hs + Tm   (collapses onto swell when Tm absent)
+//   wind chop  (white@0.35) — wind_speed_ms (period is a fixed 2s)
 //
-// Degrades gracefully: missing fields render "—"; missing data file
-// shows a status hint; missing wave/period switches the animation into a
-// slow amplitude breath ("the buoy is silent but we're listening").
+// Degrades gracefully: missing fields render "—"; missing data file shows a
+// status hint; if all wave fields are null, only the turquoise mean layer
+// runs as a slow breath + drift ("the buoy is silent but we're listening").
 
 const KNOTS_PER_MS = 1.94384;
 const FEET_PER_M = 3.28084;
@@ -18,24 +21,26 @@ const els = {
   tide:      document.getElementById('m-tide'),
   source:    document.getElementById('now-source'),
   updated:   document.getElementById('now-updated'),
-  // Scaffolding: single-line render targets wave-mean (turquoise) so the
-  // breath fallback color is preserved. Task 12 will replace this with
-  // explicit per-layer els (swell/mean/chop).
-  path:      document.getElementById('wave-mean'),
+  swell:     document.getElementById('wave-swell'),
+  mean:      document.getElementById('wave-mean'),
+  chop:      document.getElementById('wave-chop'),
   card:      document.querySelector('.now'),
   stalePill: document.getElementById('stale-pill'),
 };
 
 const STALE_THRESHOLD_MS = 2 * 60 * 60 * 1000;  // 2 hours
 
-// Wave animation state. Updated by render() when fresh data lands.
-// `period_s` switches the motion mode: number → step-tick at ocean speed,
-// null → smooth amplitude breath (the "buoy is silent but we're listening" state).
+// Wave animation state — three superimposed components, each with its own
+// amplitude / wavelength (px in viewBox) / period (real seconds) / phase.
+// render() updates the numeric fields on each data load; startMotion() drives
+// the master tick that advances each layer's phase.
+//
+// `mean.period_s` is the canonical "data present" signal — when null, we're
+// in breath fallback (mean layer only) and the other two layers stay at amp=0.
 const wave = {
-  amplitude: 4,    // viewBox px
-  wavelength: 200, // viewBox px
-  period_s: null,  // real ocean period; drives step-tick rate
-  phase: 0,
+  swell: { amp: 0, lambda: 200, period_s: null, phase: 0 },
+  mean:  { amp: 0, lambda: 200, period_s: null, phase: 0 },
+  chop:  { amp: 0, lambda: 60,  period_s: 2,    phase: 0 },
 };
 
 async function load() {
@@ -91,30 +96,50 @@ function render(data) {
     els.stalePill.setAttribute('hidden', '');
   }
 
-  // === wave-animation mapping ===
+  // === wave-animation mapping (Direction 2: three-component sea state) ===
   //
-  // Map ocean physics → SVG viewBox space (W=800, H=100, so 1 px == 1 unit).
-  //   amplitude  = clamp(Hs_m * 20, 5, 40)    px
-  //     0.25m → 5  (floor: even tiny chop renders visibly)
-  //     1.0m  → 20 (mid)
-  //     2.0m+ → 40 (cap: head-high days don't blow past viewBox)
-  //   wavelength = clamp(Tp_s * 30, 60, 400)  px
-  //     3s    → 90  (short period, choppy look)
-  //     8s    → 240 (rolling swell)
-  //     14s+  → 400 (cap: roughly one wave per SVG width)
+  // Three superimposed sine layers, each tied to a different aspect of the
+  // reading. The space between swell.period_s and mean.period_s is the visible
+  // "messiness" of the sea: when Tp ≈ Tm the layers lock in phase (clean
+  // groundswell); when they diverge they beat against each other (wind sea).
   //
-  // The 20× / 30× multipliers were chosen so a "real but unspectacular Gulf
-  // day" (1m / 8s) lands mid-frame. Numbers are taste, not science — adjust
-  // them, don't add more state. When picker returns null, fall through to
-  // breath mode (slow amplitude oscillation, no real Tp); see Motion section.
+  //   swell — Hs * 30 px amp (clamp 6..45),   Tp * 30 px λ (clamp 60..400)
+  //   mean  — Hs * 18 px amp (clamp 4..30),   Tm * 30 px λ (clamp 60..400)
+  //   chop  — ws * 1.5 px amp (clamp 0..12),  fixed 60px λ, fixed 2s period
+  //
+  // Tm is source-bounded: only honored when the picked source is the buoy
+  // (since marine forecast doesn't ship avg_period_s and we don't mix
+  // sources). When Tm is unavailable, mean collapses onto swell — three
+  // components drop to two visible layers, honestly signalling "less rich
+  // data today, no Tp/Tm divergence to show." When wind speed < 3 m/s, the
+  // chop layer drops out entirely (no decorative jitter on calm days).
+  //
+  // The 30× / 18× / 1.5× multipliers were chosen so a typical Gulf day
+  // (Hs ≈ 1m, Tp ≈ 6s, ws ≈ 8 m/s) lands mid-frame across all three layers
+  // without overlap clipping the viewBox. Numbers are taste, not science.
   if (picked.heightM != null && picked.periodS != null) {
-    wave.amplitude  = clamp(picked.heightM * 20, 5, 40);
-    wave.wavelength = clamp(picked.periodS * 30, 60, 400);
-    wave.period_s   = picked.periodS;
+    const Hs = picked.heightM;
+    const Tp = picked.periodS;
+    const isBuoy = picked.sourceLabel.startsWith('buoy');
+    const Tm = (isBuoy && r.avg_period_s != null) ? r.avg_period_s : Tp;
+
+    wave.swell.amp      = clamp(Hs * 30, 6, 45);
+    wave.swell.lambda   = clamp(Tp * 30, 60, 400);
+    wave.swell.period_s = Tp;
+
+    wave.mean.amp       = clamp(Hs * 18, 4, 30);
+    wave.mean.lambda    = clamp(Tm * 30, 60, 400);
+    wave.mean.period_s  = Tm;
+
+    const ws = r.wind_speed_ms ?? 0;
+    wave.chop.amp = ws > 3 ? clamp(ws * 1.5, 0, 12) : 0;
   } else {
-    wave.wavelength = 200;
-    wave.period_s   = null;
-    // amplitude is owned by the breath loop in this mode; don't fight it
+    // All wave fields null → breath fallback on mean only.
+    wave.swell.amp     = 0;
+    wave.chop.amp      = 0;
+    wave.mean.lambda   = 200;
+    wave.mean.period_s = null;
+    // mean.amp is owned by the breath loop in this mode; don't fight it
   }
 
   startMotion();
@@ -209,11 +234,14 @@ function clamp(v, lo, hi) {
 
 // === Motion ===
 //
-// Two modes, picked by render() via wave.period_s:
-//   step-tick — discrete 1Hz phase advance, one full wavelength per Tp seconds.
-//               The wave noticeably "ticks" forward at the real ocean rhythm.
-//   breath    — smooth amplitude oscillation, no phase drift. Used when the
-//               buoy is silent on wave fields. Reads as quietly alive.
+// Two modes, picked by render() via wave.mean.period_s:
+//   step-tick — single master 1Hz interval. Each tick advances every active
+//               layer's phase by 2π/period_s. Different layer periods produce
+//               visibly different drift speeds — that relative drift is the
+//               "messiness" reveal between swell and mean.
+//   breath    — only the mean layer renders. Slow amplitude oscillation +
+//               drift. Reads as quietly alive when buoy + marine are silent.
+//
 // startMotion() is idempotent: render() calls it on every data load.
 
 const STEP_HZ = 1;
@@ -229,16 +257,21 @@ function startMotion() {
   stopMotion();
   // Honor OS-level reduced-motion preference: render one static frame, no loop.
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    drawWave();
+    drawAll();
     return;
   }
-  if (wave.period_s != null) {
-    drawWave();
+  if (wave.mean.period_s != null) {
+    drawAll();
     stepIntervalId = setInterval(() => {
-      wave.phase += (2 * Math.PI) / (wave.period_s * STEP_HZ);
-      drawWave();
+      for (const layer of [wave.swell, wave.mean, wave.chop]) {
+        if (layer.period_s != null && layer.amp > 0) {
+          layer.phase += (2 * Math.PI) / layer.period_s;
+        }
+      }
+      drawAll();
     }, 1000 / STEP_HZ);
   } else {
+    drawAll();  // clear any stale paths from a prior step-tick mode immediately
     const origin = performance.now();
     let lastFrame = origin;
     const loop = (now) => {
@@ -247,9 +280,9 @@ function startMotion() {
       const t = (now - origin) / 1000;
       const mid = (BREATH_AMP_MIN + BREATH_AMP_MAX) / 2;
       const swing = (BREATH_AMP_MAX - BREATH_AMP_MIN) / 2;
-      wave.amplitude = mid + swing * Math.sin((2 * Math.PI * t) / BREATH_PERIOD_S);
-      wave.phase += (2 * Math.PI * dt) / BREATH_DRIFT_PERIOD_S;
-      drawWave();
+      wave.mean.amp = mid + swing * Math.sin((2 * Math.PI * t) / BREATH_PERIOD_S);
+      wave.mean.phase += (2 * Math.PI * dt) / BREATH_DRIFT_PERIOD_S;
+      drawAll();
       breathRafId = requestAnimationFrame(loop);
     };
     breathRafId = requestAnimationFrame(loop);
@@ -261,18 +294,28 @@ function stopMotion() {
   if (breathRafId)    { cancelAnimationFrame(breathRafId); breathRafId = null; }
 }
 
-function drawWave() {
+function drawAll() {
+  drawLayer(els.swell, wave.swell);
+  drawLayer(els.mean,  wave.mean);
+  drawLayer(els.chop,  wave.chop);
+}
+
+function drawLayer(pathEl, layer) {
+  if (layer.amp <= 0) {
+    pathEl.setAttribute('d', '');
+    return;
+  }
   const W = 800, H = 100, cy = H / 2;
   const samples = 200;
   let d = `M0,${cy}`;
   for (let i = 1; i <= samples; i++) {
     const x = (i / samples) * W;
-    const y = cy - wave.amplitude * Math.sin(
-      (x / wave.wavelength) * Math.PI * 2 - wave.phase
+    const y = cy - layer.amp * Math.sin(
+      (x / layer.lambda) * Math.PI * 2 - layer.phase
     );
     d += ` L${x.toFixed(1)},${y.toFixed(2)}`;
   }
-  els.path.setAttribute('d', d);
+  pathEl.setAttribute('d', d);
 }
 
 load();
