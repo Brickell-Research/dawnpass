@@ -203,20 +203,21 @@ function cardinal(deg) {
   return dirs[Math.round(deg / 22.5) % 16];
 }
 
+// Both formatters render in the viewer's local timezone via Intl. Server-side
+// data is always UTC ISO; the conversion happens in the browser at render time.
+const TIME_OPTS = { hour: '2-digit', minute: '2-digit', hour12: false, timeZoneName: 'short' };
+const DATE_OPTS = { month: 'long', day: 'numeric', year: 'numeric' };
+
 function formatTimestamp(iso) {
   const d = new Date(iso);
   if (isNaN(d.getTime())) return iso;
-  const hh = String(d.getUTCHours()).padStart(2, '0');
-  const mm = String(d.getUTCMinutes()).padStart(2, '0');
-  return `${hh}:${mm} UTC · ${d.getUTCMonth() + 1}/${d.getUTCDate()}`;
+  return `${d.toLocaleTimeString([], TIME_OPTS)} · ${d.toLocaleDateString([], DATE_OPTS)}`;
 }
 
 function formatTimeOnly(iso) {
   const d = new Date(iso);
   if (isNaN(d.getTime())) return iso;
-  const hh = String(d.getUTCHours()).padStart(2, '0');
-  const mm = String(d.getUTCMinutes()).padStart(2, '0');
-  return `${hh}:${mm} UTC`;
+  return d.toLocaleTimeString([], TIME_OPTS);
 }
 
 function formatTide(t) {
