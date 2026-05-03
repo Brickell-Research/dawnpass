@@ -38,6 +38,10 @@
     <section class="now" aria-label="current conditions">
       <header class="now-header">
         <h2 class="now-title">now</h2>
+        <span class="now-score" id="now-score" hidden>
+          <span class="now-score-value" id="now-score-value">—</span>
+          <span class="now-score-verdict" id="now-score-verdict"></span>
+        </span>
         <span class="now-meta">
           <span class="stale-pill" id="stale-pill" hidden>stale</span>
         </span>
@@ -210,6 +214,11 @@
           </svg>
         </div>
       </div>
+    </section>
+
+    <section class="window" aria-label="next surf window">
+      <span class="window-label">next window</span>
+      <span class="window-summary" id="window-summary">awaiting forecast…</span>
     </section>
 
     <section class="outlook" aria-label="3-day outlook">

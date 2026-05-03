@@ -33,6 +33,10 @@ const els = {
   windTag:         document.getElementById('m-wind-tag'),
   waveTag:         document.getElementById('m-wave-tag'),
   outlookGrid:     document.getElementById('outlook-grid'),
+  nowScore:        document.getElementById('now-score'),
+  nowScoreValue:   document.getElementById('now-score-value'),
+  nowScoreVerdict: document.getElementById('now-score-verdict'),
+  windowSummary:   document.getElementById('window-summary'),
 };
 
 // Beach orientation for wind-quality classification. PAG faces west, so
@@ -131,8 +135,16 @@ function render(data) {
     rotateMapArrow(els.mapWindArrow, r.wind_direction_deg, WIND_NATURAL_DEG, 170, 100);
   }
 
-  // 3-day outlook strip — wave + tide highs/lows. Wind comes when Step 7 lands.
+  // 3-day outlook strip — wave + tide highs/lows.
   renderOutlook(els.outlookGrid, marine?.forecast ?? [], tide);
+
+  // Recommendation engine output (computed by src/dawnpass/score/orchestrator.gleam):
+  //   data.score.now            — current Conditions score (0-10 + verdict + sub-scores + vetoes)
+  //   data.score.windows        — hysteresis-detected rideable windows in the next 72h
+  //   data.score.best_overall   — highest-composite window across the horizon
+  const scoreBlock = data.score ?? null;
+  renderNowScore(scoreBlock?.now);
+  renderNextWindow(scoreBlock?.best_overall);
 
   // Spot identity now lives in the now-map illustration; no text pill.
   els.updated.textContent = r.observed_at_utc
@@ -520,6 +532,73 @@ function formatOutlookPeriod(day) {
 
 function formatOutlookSwell(day) {
   return day.dominantDir != null ? cardinal(day.dominantDir) : '—';
+}
+
+// === Recommendation engine surface ===
+//
+// The Gleam scoring orchestrator emits a `score` block with `now` (current
+// Conditions score) and `best_overall` (highest-composite rideable window
+// in the 72h horizon). These render into the Now header and the dedicated
+// "next window" section. Empty windows is a first-class state — for PAG
+// it is the honest answer most days.
+
+function renderNowScore(now) {
+  if (!now) {
+    els.nowScore.setAttribute('hidden', '');
+    return;
+  }
+  els.nowScore.removeAttribute('hidden');
+  els.nowScoreValue.textContent = now.overall.toFixed(1);
+  els.nowScoreVerdict.textContent = now.verdict ?? '';
+  if (now.verdict) {
+    els.nowScoreVerdict.setAttribute('data-band', now.verdict);
+  } else {
+    els.nowScoreVerdict.removeAttribute('data-band');
+  }
+}
+
+function renderNextWindow(window) {
+  if (!window) {
+    els.windowSummary.textContent = 'nothing in the next 72 hours';
+    els.windowSummary.setAttribute('data-empty', '');
+    return;
+  }
+  els.windowSummary.removeAttribute('data-empty');
+  els.windowSummary.textContent = formatWindowSummary(window);
+}
+
+function formatWindowSummary(w) {
+  const range = formatWindowRange(w.starts_at, w.ends_at);
+  const peak = `peak ${w.peak_score.toFixed(1)}/10`;
+  const horizon = w.horizon_hours_out === 0
+    ? 'now'
+    : `${w.horizon_hours_out}h out`;
+  const conf = `${w.confidence} confidence`;
+  return `${range} · ${peak} · ${horizon} · ${conf}`;
+}
+
+function formatWindowRange(startIso, endIso) {
+  const a = new Date(startIso);
+  const b = new Date(endIso);
+  if (isNaN(a.getTime()) || isNaN(b.getTime())) return '';
+  const aDay = a.toLocaleDateString(undefined, { weekday: 'short' });
+  const bDay = b.toLocaleDateString(undefined, { weekday: 'short' });
+  const aTime = formatLocalShortTime(a);
+  const bTime = formatLocalShortTime(b);
+  // Same local day → "Sun 7am-11am"; spans midnight → "Sun 10pm – Mon 6am".
+  return a.getDate() === b.getDate() && a.getMonth() === b.getMonth()
+    ? `${aDay} ${aTime}-${bTime}`
+    : `${aDay} ${aTime} – ${bDay} ${bTime}`;
+}
+
+function formatLocalShortTime(d) {
+  const h = d.getHours();
+  const m = d.getMinutes();
+  const ampm = h >= 12 ? 'pm' : 'am';
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return m === 0
+    ? `${h12}${ampm}`
+    : `${h12}:${String(m).padStart(2, '0')}${ampm}`;
 }
 
 load();
