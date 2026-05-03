@@ -270,6 +270,16 @@ h1 {
   white-space: nowrap;
 }
 
+/* Tide row: 2-4 events per day, allow wrap so "H 9:14a · L 12:05p · H 6:35p"
+   doesn't blow out narrow cards. */
+.outlook-tide-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78em;
+  color: #c8d4dc;
+  text-align: right;
+  line-height: 1.4;
+}
+
 .outlook-empty {
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.82em;

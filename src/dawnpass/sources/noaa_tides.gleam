@@ -29,6 +29,10 @@ pub type TideReading {
     height_ft: Float,
     trend: Trend,
     next_event: TideEvent,
+    /// All hi/lo events from the prediction window whose timestamp is
+    /// after `observed_at_utc`. Sorted chronologically. The frontend
+    /// uses this to render per-day tide rows in the outlook strip.
+    upcoming: List(TideEvent),
   )
 }
 
@@ -75,12 +79,17 @@ pub fn fetch_tide(station: String) -> Result(TideReading, TideError) {
     yyyymmdd_from_iso(level.observed_at_utc),
   ))
   use next <- result.try(pick_next_event(level.observed_at_utc, events))
+  let upcoming =
+    list.filter(events, fn(e) {
+      string.compare(e.at_utc, level.observed_at_utc) == order.Gt
+    })
   Ok(TideReading(
     station:,
     observed_at_utc: level.observed_at_utc,
     height_ft: level.height_ft,
     trend: compute_trend(level.observed_at_utc, next),
     next_event: next,
+    upcoming:,
   ))
 }
 
@@ -285,6 +294,7 @@ pub fn encode(r: TideReading) -> json.Json {
     #("height_ft", json.float(r.height_ft)),
     #("trend", json.string(encode_trend(r.trend))),
     #("next_event", encode_event(r.next_event)),
+    #("upcoming", json.array(r.upcoming, of: encode_event)),
   ])
 }
 

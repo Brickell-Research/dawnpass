@@ -132,8 +132,8 @@ function render(data) {
     rotateMapArrow(els.mapWindArrow, r.wind_direction_deg, WIND_NATURAL_DEG, 170, 100);
   }
 
-  // 3-day outlook strip — wave-only for now (wind comes when Step 7 lands).
-  renderOutlook(els.outlookGrid, marine?.forecast ?? []);
+  // 3-day outlook strip — wave + tide highs/lows. Wind comes when Step 7 lands.
+  renderOutlook(els.outlookGrid, marine?.forecast ?? [], tide);
 
   // Spot identity now lives in the now-map illustration; no text pill.
   els.updated.textContent = r.observed_at_utc
@@ -444,7 +444,7 @@ function drawLayer(pathEl, layer) {
 //   period  — median wave_period_s rounded to seconds
 //   swell   — circular-mean wave_direction_deg as a cardinal (handles
 //             the 0/360 wrap-around correctly)
-function renderOutlook(gridEl, forecastHours) {
+function renderOutlook(gridEl, forecastHours, tide) {
   if (!gridEl) return;
   gridEl.replaceChildren();
 
@@ -458,7 +458,7 @@ function renderOutlook(gridEl, forecastHours) {
   }
 
   for (const day of days) {
-    gridEl.appendChild(buildDayCard(day));
+    gridEl.appendChild(buildDayCard(day, tide));
   }
 }
 
@@ -476,6 +476,7 @@ function groupForecastByLocalDay(forecastHours, maxDays) {
       if (groups.size >= maxDays) continue;
       groups.set(key, {
         label: d.toLocaleDateString(undefined, { weekday: 'short' }),
+        date: d,
         hours: [],
       });
     }
@@ -514,7 +515,7 @@ function circularMean(degrees) {
   return mean;
 }
 
-function buildDayCard(day) {
+function buildDayCard(day, tide) {
   const card = document.createElement('article');
   card.className = 'outlook-day';
 
@@ -526,10 +527,11 @@ function buildDayCard(day) {
   card.appendChild(outlookRow('wave',   formatWaveRange(day)));
   card.appendChild(outlookRow('period', formatOutlookPeriod(day)));
   card.appendChild(outlookRow('swell',  formatOutlookSwell(day)));
+  card.appendChild(outlookRow('tide',   formatDayTide(day, tide), 'outlook-tide-value'));
   return card;
 }
 
-function outlookRow(label, value) {
+function outlookRow(label, value, valueClass = 'outlook-value') {
   const row = document.createElement('div');
   row.className = 'outlook-row';
 
@@ -539,11 +541,40 @@ function outlookRow(label, value) {
   row.appendChild(l);
 
   const v = document.createElement('span');
-  v.className = 'outlook-value';
+  v.className = valueClass;
   v.textContent = value;
   row.appendChild(v);
 
   return row;
+}
+
+// Pull tide hi/lo events that fall on the same local day as `day.date`.
+// Returns a compact string like "H 9:14a · L 12:05p · H 6:35p" — or "—".
+function formatDayTide(day, tide) {
+  if (!tide || !Array.isArray(tide.upcoming) || tide.upcoming.length === 0) return '—';
+  const events = tide.upcoming.filter(e => sameLocalDay(new Date(e.at_utc), day.date));
+  if (events.length === 0) return '—';
+  return events.map(e => {
+    const sym = e.kind === 'high' ? 'H' : 'L';
+    return `${sym} ${localTime(e.at_utc)}`;
+  }).join(' · ');
+}
+
+function sameLocalDay(a, b) {
+  return a.getFullYear() === b.getFullYear()
+      && a.getMonth() === b.getMonth()
+      && a.getDate() === b.getDate();
+}
+
+// "2026-05-04T02:40:00Z" → "10:40p" in the user's local time.
+function localTime(iso) {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  const h = d.getHours();
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  const ampm = h >= 12 ? 'p' : 'a';
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${h12}:${mm}${ampm}`;
 }
 
 function formatWaveRange(day) {
