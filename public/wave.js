@@ -118,6 +118,7 @@ const STEP_HZ = 1;
 const BREATH_PERIOD_S = 10;
 const BREATH_AMP_MIN = 4;
 const BREATH_AMP_MAX = 7;
+const BREATH_DRIFT_PERIOD_S = 30;  // one wavelength per 30s — slow ambient motion
 
 let stepIntervalId = null;
 let breathRafId = null;
@@ -132,11 +133,15 @@ function startMotion() {
     }, 1000 / STEP_HZ);
   } else {
     const origin = performance.now();
+    let lastFrame = origin;
     const loop = (now) => {
+      const dt = (now - lastFrame) / 1000;
+      lastFrame = now;
       const t = (now - origin) / 1000;
       const mid = (BREATH_AMP_MIN + BREATH_AMP_MAX) / 2;
       const swing = (BREATH_AMP_MAX - BREATH_AMP_MIN) / 2;
       wave.amplitude = mid + swing * Math.sin((2 * Math.PI * t) / BREATH_PERIOD_S);
+      wave.phase += (2 * Math.PI * dt) / BREATH_DRIFT_PERIOD_S;
       drawWave();
       breathRafId = requestAnimationFrame(loop);
     };
