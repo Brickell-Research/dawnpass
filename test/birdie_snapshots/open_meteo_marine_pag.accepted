@@ -2,4 +2,4 @@
 version: 2.0.0
 title: open-meteo marine pag
 ---
-{"latitude":27.708336,"longitude":-82.70833,"observed_at_utc":"2026-05-03T19:00:00Z","wave_height_m":0.42,"wave_period_s":4.2,"wave_direction_deg":326}
+{"latitude":27.708336,"longitude":-82.70833,"observed_at_utc":"2026-05-03T19:00:00Z","wave_height_m":0.42,"wave_period_s":4.2,"wave_direction_deg":326,"forecast":[{"at_utc":"2026-05-03T20:00:00Z","wave_height_m":0.45,"wave_period_s":4.3,"wave_direction_deg":325},{"at_utc":"2026-05-03T21:00:00Z","wave_height_m":0.48,"wave_period_s":4.4,"wave_direction_deg":327},{"at_utc":"2026-05-03T22:00:00Z","wave_height_m":0.5,"wave_period_s":4.5,"wave_direction_deg":328}]}

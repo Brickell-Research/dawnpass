@@ -28,6 +28,18 @@ pub type MarineReading {
     wave_height_m: Option(Float),
     wave_period_s: Option(Float),
     wave_direction_deg: Option(Int),
+    forecast: List(MarineForecastHour),
+  )
+}
+
+/// One hour of model forecast — the parallel hourly arrays from
+/// open-meteo-marine zipped into per-hour records.
+pub type MarineForecastHour {
+  MarineForecastHour(
+    at_utc: String,
+    wave_height_m: Option(Float),
+    wave_period_s: Option(Float),
+    wave_direction_deg: Option(Int),
   )
 }
 
@@ -44,7 +56,8 @@ const user_agent = "dawnpass/0.1 (https://dawnpass.brickellresearch.org)"
 
 // === HTTP fetch ===
 
-/// Fetch the current wave forecast at the given coordinate.
+/// Fetch the current wave conditions + a 3-day hourly forecast at the
+/// given coordinate. One HTTP call returns both blocks.
 pub fn fetch_marine(
   latitude latitude: Float,
   longitude longitude: Float,
@@ -56,6 +69,8 @@ pub fn fetch_marine(
     <> "&longitude="
     <> float.to_string(longitude)
     <> "&current=wave_height,wave_period,wave_direction"
+    <> "&hourly=wave_height,wave_period,wave_direction"
+    <> "&forecast_days=3"
     <> "&timezone=GMT"
 
   use base_req <- result.try(
@@ -82,11 +97,29 @@ pub fn parse_marine(body: String) -> Result(MarineReading, MarineError) {
     use wd <- decode.field("wave_direction", decode.optional(decode.int))
     decode.success(#(time, wh, wp, wd))
   }
+  let hourly_decoder = {
+    use times <- decode.field("time", decode.list(decode.string))
+    use heights <- decode.field(
+      "wave_height",
+      decode.list(decode.optional(decode.float)),
+    )
+    use periods <- decode.field(
+      "wave_period",
+      decode.list(decode.optional(decode.float)),
+    )
+    use dirs <- decode.field(
+      "wave_direction",
+      decode.list(decode.optional(decode.int)),
+    )
+    decode.success(#(times, heights, periods, dirs))
+  }
   let decoder = {
     use latitude <- decode.field("latitude", decode.float)
     use longitude <- decode.field("longitude", decode.float)
     use current <- decode.field("current", current_decoder)
+    use hourly <- decode.field("hourly", hourly_decoder)
     let #(time, wh, wp, wd) = current
+    let #(times, heights, periods, dirs) = hourly
     decode.success(MarineReading(
       latitude:,
       longitude:,
@@ -94,12 +127,35 @@ pub fn parse_marine(body: String) -> Result(MarineReading, MarineError) {
       wave_height_m: wh,
       wave_period_s: wp,
       wave_direction_deg: wd,
+      forecast: zip4_hours(times, heights, periods, dirs),
     ))
   }
 
   case json.parse(body, decoder) {
     Ok(reading) -> Ok(reading)
     Error(e) -> Error(JsonDecodeError(e))
+  }
+}
+
+/// Weave the four parallel hourly arrays into a list of MarineForecastHour.
+/// Stops at the shortest input (defensive against API field-length mismatch).
+fn zip4_hours(
+  ts: List(String),
+  hs: List(Option(Float)),
+  ps: List(Option(Float)),
+  ds: List(Option(Int)),
+) -> List(MarineForecastHour) {
+  case ts, hs, ps, ds {
+    [t, ..ts2], [h, ..hs2], [p, ..ps2], [d, ..ds2] -> [
+      MarineForecastHour(
+        at_utc: normalize_timestamp(t),
+        wave_height_m: h,
+        wave_period_s: p,
+        wave_direction_deg: d,
+      ),
+      ..zip4_hours(ts2, hs2, ps2, ds2)
+    ]
+    _, _, _, _ -> []
   }
 }
 
@@ -129,6 +185,16 @@ pub fn encode(r: MarineReading) -> json.Json {
     #("wave_height_m", encode_optional(r.wave_height_m, json.float)),
     #("wave_period_s", encode_optional(r.wave_period_s, json.float)),
     #("wave_direction_deg", encode_optional(r.wave_direction_deg, json.int)),
+    #("forecast", json.array(r.forecast, of: encode_forecast_hour)),
+  ])
+}
+
+fn encode_forecast_hour(h: MarineForecastHour) -> json.Json {
+  json.object([
+    #("at_utc", json.string(h.at_utc)),
+    #("wave_height_m", encode_optional(h.wave_height_m, json.float)),
+    #("wave_period_s", encode_optional(h.wave_period_s, json.float)),
+    #("wave_direction_deg", encode_optional(h.wave_direction_deg, json.int)),
   ])
 }
 

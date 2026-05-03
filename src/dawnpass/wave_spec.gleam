@@ -62,21 +62,31 @@ pub type WaveLayers {
 //   chop  T   = chop_period_s (fixed)
 
 const swell_amp_mult: Float = 30.0
+
 const swell_amp_min: Float = 6.0
+
 const swell_amp_max: Float = 45.0
 
 const mean_amp_mult: Float = 18.0
+
 const mean_amp_min: Float = 4.0
+
 const mean_amp_max: Float = 30.0
 
 const period_mult: Float = 30.0
+
 const lambda_min: Float = 60.0
+
 const lambda_max: Float = 400.0
 
 const chop_amp_mult: Float = 0.75
+
 const chop_amp_max: Float = 6.0
+
 const chop_lambda: Float = 30.0
+
 const chop_period_s: Float = 2.0
+
 const chop_wind_min_ms: Float = 3.0
 
 // Silent-state mean wavelength — kept stable so the breath loop has a
@@ -103,7 +113,13 @@ pub fn compute_layers(
         height_m: Some(hs),
         period_s: Some(tp),
         direction_deg: direction,
-        swell: stroke_layer(hs, tp, swell_amp_mult, swell_amp_min, swell_amp_max),
+        swell: stroke_layer(
+          hs,
+          tp,
+          swell_amp_mult,
+          swell_amp_min,
+          swell_amp_max,
+        ),
         mean: stroke_layer(hs, tm, mean_amp_mult, mean_amp_min, mean_amp_max),
         chop:,
       )
@@ -114,7 +130,13 @@ pub fn compute_layers(
         height_m: Some(hs),
         period_s: Some(tp),
         direction_deg: direction,
-        swell: stroke_layer(hs, tp, swell_amp_mult, swell_amp_min, swell_amp_max),
+        swell: stroke_layer(
+          hs,
+          tp,
+          swell_amp_mult,
+          swell_amp_min,
+          swell_amp_max,
+        ),
         // No Tm available — mean collapses onto swell. Renderer skips drawing
         // it (same period as swell → identical shape, pure visual noise).
         mean: stroke_layer(hs, tp, mean_amp_mult, mean_amp_min, mean_amp_max),
@@ -128,7 +150,11 @@ pub fn compute_layers(
         direction_deg: direction,
         swell: Layer(amp: 0.0, lambda: silent_mean_lambda, period_s: None),
         mean: Layer(amp: 0.0, lambda: silent_mean_lambda, period_s: None),
-        chop: Layer(amp: 0.0, lambda: chop_lambda, period_s: Some(chop_period_s)),
+        chop: Layer(
+          amp: 0.0,
+          lambda: chop_lambda,
+          period_s: Some(chop_period_s),
+        ),
       )
   }
 }

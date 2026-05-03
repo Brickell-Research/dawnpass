@@ -45,6 +45,7 @@ fn marine(
     wave_height_m: hs,
     wave_period_s: tp,
     wave_direction_deg: dir,
+    forecast: [],
   )
 }
 
