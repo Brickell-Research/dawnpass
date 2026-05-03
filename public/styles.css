@@ -8,7 +8,7 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  max-width: 42rem;
+  max-width: 52rem;
   margin: 0 auto;
   padding: 2rem;
 }
@@ -58,13 +58,6 @@ h1 {
   gap: 0.5rem;
 }
 
-.now-source {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.78em;
-  color: #7d8793;
-  letter-spacing: 0.04em;
-}
-
 .stale-pill {
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.65em;
@@ -80,8 +73,31 @@ h1 {
 .now[data-stale] .metric-value,
 .now[data-stale] .tide-value,
 .now[data-stale] .now-wave,
-.now[data-stale] .wave-legend {
+.now[data-stale] .wave-legend,
+.now[data-stale] .wave-compass {
   opacity: 0.5;
+}
+
+.now-body {
+  display: grid;
+  grid-template-columns: 1fr 200px;
+  gap: 1.4rem;
+  align-items: start;
+}
+
+.now-data { min-width: 0; }
+
+.now-map {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.now-map img {
+  display: block;
+  width: 100%;
+  max-width: 200px;
+  height: auto;
 }
 
 .now-grid {
@@ -164,12 +180,33 @@ h1 {
 .legend-name { color: #c8d4dc; min-width: 3em; }
 .legend-desc { color: #7d8793; }
 
+.wave-frame {
+  position: relative;
+  margin-bottom: 0.6rem;
+}
+
 .now-wave {
   display: block;
   width: 100%;
   height: 80px;
-  margin-bottom: 0.6rem;
 }
+
+.wave-compass {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  color: #7d8793;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65em;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+}
+
+.wave-compass-icon { display: block; }
 
 /* Three superimposed components, painted bottom→top in DOM order:
    chop (high-freq surface texture), mean sea, dominant swell. */
@@ -182,6 +219,11 @@ h1 {
   font-size: 0.78em;
   color: #7d8793;
   margin: 0;
+}
+
+@media (max-width: 700px) {
+  .now-body { grid-template-columns: 1fr; }
+  .now-map img { max-width: 240px; margin: 0 auto; }
 }
 
 @media (max-width: 480px) {

@@ -19,13 +19,15 @@ const els = {
   period:    document.getElementById('m-period'),
   wind:      document.getElementById('m-wind'),
   tide:      document.getElementById('m-tide'),
-  source:    document.getElementById('now-source'),
   updated:   document.getElementById('now-updated'),
-  swell:     document.getElementById('wave-swell'),
-  mean:      document.getElementById('wave-mean'),
-  chop:      document.getElementById('wave-chop'),
-  card:      document.querySelector('.now'),
-  stalePill: document.getElementById('stale-pill'),
+  swell:        document.getElementById('wave-swell'),
+  mean:         document.getElementById('wave-mean'),
+  chop:         document.getElementById('wave-chop'),
+  compass:      document.getElementById('wave-compass'),
+  compassArrow: document.getElementById('wave-compass-arrow'),
+  compassLabel: document.getElementById('wave-compass-label'),
+  card:         document.querySelector('.now'),
+  stalePill:    document.getElementById('stale-pill'),
 };
 
 const STALE_THRESHOLD_MS = 2 * 60 * 60 * 1000;  // 2 hours
@@ -78,8 +80,7 @@ function render(data) {
 
   els.tide.textContent = formatTide(tide);
 
-  // Spot name, not sensor name. Hardcoded until spots/<spot>.json lands.
-  els.source.textContent = 'Pass-a-Grille';
+  // Spot identity now lives in the now-map illustration; no text pill.
   els.updated.textContent = r.observed_at_utc
     ? `updated ${formatTimestamp(r.observed_at_utc)}`
     : 'no timestamp';
@@ -133,6 +134,8 @@ function render(data) {
 
     const ws = r.wind_speed_ms ?? 0;
     wave.chop.amp = ws > 3 ? clamp(ws * 0.75, 0, 6) : 0;
+
+    updateCompass(r.mean_wave_direction_deg);
   } else {
     // All wave fields null → breath fallback on mean only.
     wave.swell.amp     = 0;
@@ -140,9 +143,25 @@ function render(data) {
     wave.mean.lambda   = 200;
     wave.mean.period_s = null;
     // mean.amp is owned by the breath loop in this mode; don't fight it
+
+    updateCompass(null);  // no waves to point at
   }
 
   startMotion();
+}
+
+// Top-right compass on the wave SVG. NDBC ships mean_wave_direction_deg as
+// "where waves come FROM" (compass bearing, 0=N, clockwise). Convention here:
+// arrow points TO the source (where waves come from), label is the cardinal
+// of that bearing. Hidden when bearing is null.
+function updateCompass(deg) {
+  if (deg == null) {
+    els.compass.setAttribute('hidden', '');
+    return;
+  }
+  els.compass.removeAttribute('hidden');
+  els.compassArrow.setAttribute('transform', `rotate(${deg})`);
+  els.compassLabel.textContent = cardinal(deg);
 }
 
 // === wave-source picking ===

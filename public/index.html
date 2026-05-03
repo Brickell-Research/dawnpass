@@ -29,53 +29,68 @@
       <header class="now-header">
         <h2 class="now-title">now</h2>
         <span class="now-meta">
-          <span class="now-source" id="now-source">—</span>
           <span class="stale-pill" id="stale-pill" hidden>stale</span>
         </span>
       </header>
 
-      <div class="now-grid">
-        <div class="metric">
-          <span class="metric-label">wave</span>
-          <span class="metric-value" id="m-wave">—</span>
+      <div class="now-body">
+        <div class="now-data">
+          <div class="now-grid">
+            <div class="metric">
+              <span class="metric-label">wave</span>
+              <span class="metric-value" id="m-wave">—</span>
+            </div>
+            <div class="metric">
+              <span class="metric-label">period</span>
+              <span class="metric-value" id="m-period">—</span>
+            </div>
+            <div class="metric">
+              <span class="metric-label">wind</span>
+              <span class="metric-value" id="m-wind">—</span>
+            </div>
+          </div>
+
+          <div class="tide-row">
+            <span class="tide-label">tide</span>
+            <span class="tide-value" id="m-tide">—</span>
+          </div>
+
+          <ul class="wave-legend" aria-label="wave layer legend">
+            <li class="legend-item legend-swell">
+              <span class="legend-name">swell</span>
+              <span class="legend-desc">the dominant swell wave</span>
+            </li>
+            <li class="legend-item legend-mean">
+              <span class="legend-name">mean</span>
+              <span class="legend-desc">the average sea state — hidden when same as swell</span>
+            </li>
+            <li class="legend-item legend-chop">
+              <span class="legend-name">chop</span>
+              <span class="legend-desc">wind-driven surface ripples</span>
+            </li>
+          </ul>
+
+          <div class="wave-frame">
+            <svg class="now-wave" viewBox="0 0 800 100" preserveAspectRatio="none" aria-hidden="true">
+              <path id="wave-chop"  d="" fill="none" stroke-linecap="round"/>
+              <path id="wave-mean"  d="" fill="none" stroke-linecap="round"/>
+              <path id="wave-swell" d="" fill="none" stroke-linecap="round"/>
+            </svg>
+            <div class="wave-compass" id="wave-compass" hidden aria-label="swell direction">
+              <svg class="wave-compass-icon" viewBox="-10 -10 20 20" width="14" height="14" aria-hidden="true">
+                <path id="wave-compass-arrow" d="M0,-7 L5,5 L0,2 L-5,5 Z" fill="#7d8793"/>
+              </svg>
+              <span class="wave-compass-label" id="wave-compass-label">—</span>
+            </div>
+          </div>
+
+          <p class="now-updated" id="now-updated">awaiting data…</p>
         </div>
-        <div class="metric">
-          <span class="metric-label">period</span>
-          <span class="metric-value" id="m-period">—</span>
-        </div>
-        <div class="metric">
-          <span class="metric-label">wind</span>
-          <span class="metric-value" id="m-wind">—</span>
+
+        <div class="now-map">
+          <img src="/map-pag.svg" alt="Notebook surf chart of Pass-a-Grille's south tip" />
         </div>
       </div>
-
-      <div class="tide-row">
-        <span class="tide-label">tide</span>
-        <span class="tide-value" id="m-tide">—</span>
-      </div>
-
-      <ul class="wave-legend" aria-label="wave layer legend">
-        <li class="legend-item legend-swell">
-          <span class="legend-name">swell</span>
-          <span class="legend-desc">the dominant swell wave</span>
-        </li>
-        <li class="legend-item legend-mean">
-          <span class="legend-name">mean</span>
-          <span class="legend-desc">the average sea state — hidden when same as swell</span>
-        </li>
-        <li class="legend-item legend-chop">
-          <span class="legend-name">chop</span>
-          <span class="legend-desc">wind-driven surface ripples</span>
-        </li>
-      </ul>
-
-      <svg class="now-wave" viewBox="0 0 800 100" preserveAspectRatio="none" aria-hidden="true">
-        <path id="wave-chop"  d="" fill="none" stroke-linecap="round"/>
-        <path id="wave-mean"  d="" fill="none" stroke-linecap="round"/>
-        <path id="wave-swell" d="" fill="none" stroke-linecap="round"/>
-      </svg>
-
-      <p class="now-updated" id="now-updated">awaiting data…</p>
     </section>
 
     <p class="status">v0 · pre-release · forecast logic en route</p>
