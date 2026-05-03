@@ -1,8 +1,10 @@
 name: forecast
 
-# Hourly refresh of public/data/latest.json. Runs `gleam run` to fetch
-# NDBC + NOAA + Open-Meteo, writes the combined JSON, commits any change
-# back to main as `dawnpass-bot`. Vercel auto-deploys on push.
+# Hourly refresh of public/data/latest.json AND public/index.html. Runs
+# `gleam run` to fetch NDBC + NOAA + Open-Meteo, writes the combined JSON,
+# and SSRs the wave-layer paths into index.html via wave_spec.render_path.
+# Commits any change back to main as `dawnpass-bot`. Vercel auto-deploys
+# on push.
 #
 # Loop prevention:
 #   - no `on: push` trigger here, so bot's own commits can't re-fire this
@@ -52,7 +54,7 @@ jobs:
           git config user.name 'dawnpass-bot'
           git config user.email 'bot@brickellresearch.org'
           mkdir -p public/data
-          git add public/data
+          git add public/data public/index.html
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
