@@ -71,8 +71,10 @@ h1 {
   font-weight: 600;
 }
 
-.now-score-value::before { content: ""; }
-.now-score-value::after  { content: " /10"; color: #7d8793; font-weight: 400; font-size: 0.85em; }
+.now-score-value::after {
+  content: " /10";
+  color: #7d8793; /* same size + weight as the value, only colour differs */
+}
 
 .now-score-verdict {
   color: #7d8793;
@@ -242,36 +244,47 @@ h1 {
 
 .window {
   margin-bottom: 1.6em;
-  padding: 1rem 1.4rem;
+  padding: 1.1rem 1.4rem;
   background: #0a0a14;
   border: 1px solid #1a1a2e;
   border-radius: 8px;
   display: flex;
-  align-items: baseline;
-  gap: 1rem;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 0.35rem;
 }
 
 .window-label {
   font-family: 'JetBrains Mono', monospace;
   color: #FF1493;
-  font-size: 0.95em;
-  letter-spacing: 0.04em;
-  flex-shrink: 0;
+  font-size: 0.78em;
+  letter-spacing: 0.1em;
+  text-transform: lowercase;
 }
 
-.window-label::before { content: "// "; color: #7d8793; }
+.window-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
 
-.window-summary {
+.window-when {
   font-family: 'JetBrains Mono', monospace;
   color: #E0FFFF;
-  font-size: 0.9em;
-  line-height: 1.5;
+  font-size: 1.15em;
+  letter-spacing: 0.02em;
 }
 
-.window-summary[data-empty] {
+.window-when[data-empty] {
   color: #7d8793;
   font-style: italic;
+  font-size: 0.95em;
+}
+
+.window-meta {
+  font-family: 'JetBrains Mono', monospace;
+  color: #7d8793;
+  font-size: 0.82em;
+  letter-spacing: 0.04em;
 }
 
 .outlook {
@@ -334,8 +347,8 @@ h1 {
   white-space: nowrap;
 }
 
-/* Tide row: 2-4 events per day, allow wrap so "H 9:14a · L 12:05p · H 6:35p"
-   doesn't blow out narrow cards. */
+/* Tide row in the outlook: 2-4 events per day. Stack vertically with
+   color-coded H/L markers — easier to scan than a long " · "-joined line. */
 .outlook-tide-value {
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.78em;
@@ -343,6 +356,32 @@ h1 {
   text-align: right;
   line-height: 1.4;
 }
+
+.outlook-tide-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.15rem;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.tide-event {
+  font-size: 0.78em;
+  color: #c8d4dc;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+.tide-event-kind {
+  display: inline-block;
+  width: 0.9em;
+  text-align: center;
+  margin-right: 0.15em;
+  font-weight: 600;
+}
+
+.tide-event-kind[data-kind="H"] { color: #00CED1; }
+.tide-event-kind[data-kind="L"] { color: #c08842; }
 
 .outlook-empty {
   font-family: 'JetBrains Mono', monospace;

@@ -36,7 +36,8 @@ const els = {
   nowScore:        document.getElementById('now-score'),
   nowScoreValue:   document.getElementById('now-score-value'),
   nowScoreVerdict: document.getElementById('now-score-verdict'),
-  windowSummary:   document.getElementById('window-summary'),
+  windowWhen:      document.getElementById('window-when'),
+  windowMeta:      document.getElementById('window-meta'),
 };
 
 // Beach orientation for wind-quality classification. PAG faces west, so
@@ -468,8 +469,52 @@ function buildDayCard(day, tide) {
   card.appendChild(outlookRow('wave',   formatWaveRange(day)));
   card.appendChild(outlookRow('period', formatOutlookPeriod(day)));
   card.appendChild(outlookRow('swell',  formatOutlookSwell(day)));
-  card.appendChild(outlookRow('tide',   formatDayTide(day, tide), 'outlook-tide-value'));
+  card.appendChild(buildTideRow(day, tide));
   return card;
+}
+
+// Build the tide row as a vertical stack of color-coded H/L events.
+// Each event renders as "<colored kind> HH:MM<a|p>" — easier to scan
+// than the previous joined " · " string when there are 3-4 events.
+function buildTideRow(day, tide) {
+  const row = document.createElement('div');
+  row.className = 'outlook-row';
+
+  const label = document.createElement('span');
+  label.className = 'outlook-label';
+  label.textContent = 'tide';
+  row.appendChild(label);
+
+  const events = tide && Array.isArray(tide.upcoming)
+    ? tide.upcoming.filter(e => sameLocalDay(new Date(e.at_utc), day.date))
+    : [];
+
+  if (events.length === 0) {
+    const empty = document.createElement('span');
+    empty.className = 'outlook-value';
+    empty.textContent = '—';
+    row.appendChild(empty);
+    return row;
+  }
+
+  const stack = document.createElement('div');
+  stack.className = 'outlook-tide-stack';
+  for (const e of events) {
+    const ev = document.createElement('div');
+    ev.className = 'tide-event';
+
+    const kindCh = e.kind === 'high' ? 'H' : 'L';
+    const kindEl = document.createElement('span');
+    kindEl.className = 'tide-event-kind';
+    kindEl.setAttribute('data-kind', kindCh);
+    kindEl.textContent = kindCh;
+    ev.appendChild(kindEl);
+
+    ev.appendChild(document.createTextNode(localTime(e.at_utc)));
+    stack.appendChild(ev);
+  }
+  row.appendChild(stack);
+  return row;
 }
 
 function outlookRow(label, value, valueClass = 'outlook-value') {
@@ -557,24 +602,31 @@ function renderNowScore(now) {
   }
 }
 
-function renderNextWindow(window) {
-  if (!window) {
-    els.windowSummary.textContent = 'nothing in the next 72 hours';
-    els.windowSummary.setAttribute('data-empty', '');
+function renderNextWindow(w) {
+  if (!w) {
+    els.windowWhen.textContent = 'nothing in the next 72 hours';
+    els.windowWhen.setAttribute('data-empty', '');
+    els.windowMeta.textContent = '';
     return;
   }
-  els.windowSummary.removeAttribute('data-empty');
-  els.windowSummary.textContent = formatWindowSummary(window);
+  els.windowWhen.removeAttribute('data-empty');
+  els.windowWhen.textContent = formatWindowRange(w.starts_at, w.ends_at);
+  els.windowMeta.textContent = formatWindowMeta(w);
 }
 
-function formatWindowSummary(w) {
-  const range = formatWindowRange(w.starts_at, w.ends_at);
+function formatWindowMeta(w) {
   const peak = `peak ${w.peak_score.toFixed(1)}/10`;
-  const horizon = w.horizon_hours_out === 0
-    ? 'now'
-    : `${w.horizon_hours_out}h out`;
+  // horizon_hours_out=0 means the window has already started. Distinguish
+  // "in progress" from "just about to start".
+  const endsTs = new Date(w.ends_at).getTime();
+  const horizon =
+    w.horizon_hours_out === 0
+      ? endsTs > Date.now()
+        ? 'happening now'
+        : 'just ended'
+      : `${w.horizon_hours_out}h out`;
   const conf = `${w.confidence} confidence`;
-  return `${range} · ${peak} · ${horizon} · ${conf}`;
+  return `${peak} · ${horizon} · ${conf}`;
 }
 
 function formatWindowRange(startIso, endIso) {

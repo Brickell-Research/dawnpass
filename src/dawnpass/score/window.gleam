@@ -16,6 +16,7 @@ import gleam/float
 import gleam/int
 import gleam/list
 import gleam/option.{type Option, None, Some}
+import gleam/order
 import gleam/result
 import gleam/string
 
@@ -58,6 +59,10 @@ pub fn detect(
   })
   |> list.filter(fn(w) { w.length_hours >= cfg.l_min_hours })
   |> list.map(fn(w) { with_horizon(w, now_iso) })
+  // Drop windows that already ended. A window currently in progress
+  // (started in the past, ends in the future) is kept and reported with
+  // horizon_hours_out = 0 so the UI can label it "happening now".
+  |> list.filter(fn(w) { string.compare(w.ends_at, now_iso) == order.Gt })
   |> list.sort(fn(a, b) { float.compare(b.composite, a.composite) })
 }
 
