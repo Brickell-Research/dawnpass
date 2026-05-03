@@ -146,14 +146,21 @@ function render(data) {
   // water from NDBC buoy 42036 (offshore but close enough in the Gulf).
   const windKey = Object.keys(data).find(k => k.startsWith('wind_'));
   const windBlock = windKey ? data[windKey] : null;
-  els.mapAirTemp.textContent =
-    windBlock?.air_temp_c != null
-      ? `${celsiusToF(windBlock.air_temp_c).toFixed(0)}°F`
-      : '—';
-  els.mapWaterTemp.textContent =
-    r.wtmp_c != null
-      ? `${celsiusToF(r.wtmp_c).toFixed(0)}°F`
-      : '—';
+  // Null-guard the temp elements: if the SSR template ever drifts and these
+  // glyphs go missing, we don't want one missing element to throw and take
+  // down the whole render() (which would surface as "fetch failed").
+  if (els.mapAirTemp) {
+    els.mapAirTemp.textContent =
+      windBlock?.air_temp_c != null
+        ? `${celsiusToF(windBlock.air_temp_c).toFixed(0)}°F`
+        : '—';
+  }
+  if (els.mapWaterTemp) {
+    els.mapWaterTemp.textContent =
+      r.wtmp_c != null
+        ? `${celsiusToF(r.wtmp_c).toFixed(0)}°F`
+        : '—';
+  }
 
   // 3-day outlook strip — wave + tide highs/lows.
   renderOutlook(els.outlookGrid, marine?.forecast ?? [], tide);
