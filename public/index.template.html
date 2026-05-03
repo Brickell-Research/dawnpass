@@ -24,7 +24,6 @@
   <main>
     <h1>dawnpass</h1>
     <p class="tagline">the watch is up.</p>
-    <p class="status">v0 · pre-release · forecast logic en route</p>
 
     <aside class="notes" aria-label="how to read this">
       <h3 class="notes-title">how to read this</h3>
@@ -70,9 +69,6 @@
           <div class="tide-row">
             <span class="tide-label">tide</span>
             <span class="tide-value" id="m-tide">—</span>
-          </div>
-
-          <div class="wave-frame">
             <svg class="now-wave" viewBox="0 0 800 100" preserveAspectRatio="none" aria-hidden="true">
               <path id="wave-chop"  d="{{WAVE_CHOP_D}}"  fill="none" stroke-linecap="round"/>
               <path id="wave-mean"  d="{{WAVE_MEAN_D}}"  fill="none" stroke-linecap="round"/>
@@ -84,7 +80,7 @@
         </div>
 
         <div class="now-map">
-          <svg class="now-map-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 280" role="img" aria-label="Notebook surf chart of Pass-a-Grille's south tip with longboard, pelican overhead, and breaching dolphin">
+          <svg class="now-map-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 280" role="img" aria-label="Notebook surf chart of Pass-a-Grille's south tip with longboard and breaching dolphin">
 
             <!-- notebook page chrome -->
             <g stroke="#00CED1" stroke-width="0.4" opacity="0.13">
@@ -165,11 +161,6 @@
               <line x1="160" y1="100" x2="180" y2="100" marker-end="url(#map-windarrow)"/>
             </g>
             <text id="map-wind" x="170" y="113" text-anchor="middle" font-family="JetBrains Mono, ui-monospace, monospace" font-size="6" fill="#FF1493" font-style="italic" opacity="0.85" letter-spacing="0.06em">wind</text>
-
-            <!-- pelican overhead -->
-            <g transform="translate(60, 56)" aria-label="pelican overhead">
-              <path d="M -11 1 Q -7 -3 -3 0 Q 0 -2 3 0 Q 7 -3 11 1" stroke="#1a1a2e" stroke-width="1.3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-            </g>
 
             <!-- air-temp glyph: sun in top-left corner above the contours -->
             <g transform="translate(30, 60)" aria-label="air temperature">
@@ -257,6 +248,7 @@
 
   <footer>
     <p>A <a href="https://brickellresearch.org">Brickell Research</a> project.</p>
+    <p class="status">v0 · pre-release · forecast logic en route</p>
   </footer>
 </body>
 </html>

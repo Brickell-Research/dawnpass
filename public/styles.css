@@ -111,12 +111,20 @@ h1 {
 
 .now-body {
   display: grid;
-  grid-template-columns: 1fr 260px;
+  grid-template-columns: 1fr 200px;
   gap: 1.4rem;
-  align-items: start;
+  align-items: stretch;
 }
 
-.now-data { min-width: 0; }
+.now-data {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* "updated…" anchors the bottom of the data column so it baseline-aligns
+   with the map and the card doesn't read as a broken layout. */
+.now-data .now-updated { margin-top: auto; }
 
 .now-map {
   display: flex;
@@ -127,7 +135,7 @@ h1 {
 .now-map-svg {
   display: block;
   width: 100%;
-  max-width: 260px;
+  max-width: 200px;
   height: auto;
 }
 
@@ -173,7 +181,7 @@ h1 {
 
 .tide-row {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 0.8rem;
   padding-top: 0.8rem;
   margin-bottom: 1rem;
@@ -196,15 +204,14 @@ h1 {
 
 .tide-chunk { display: inline-block; white-space: nowrap; }
 
-.wave-frame {
-  position: relative;
-  margin-bottom: 0.6rem;
-}
-
+/* Sparkline tucked next to tide — ambient signal that the page is alive
+   without competing with the map for attention. */
 .now-wave {
   display: block;
-  width: 100%;
-  height: 80px;
+  flex: 1;
+  min-width: 0;
+  height: 24px;
+  opacity: 0.75;
 }
 
 /* Three superimposed components, painted bottom→top in DOM order. Colors
@@ -225,11 +232,19 @@ h1 {
 @media (max-width: 700px) {
   .now-body { grid-template-columns: 1fr; }
   .now-map-svg { max-width: 280px; margin: 0 auto; }
+
+  /* Mobile reorder: data first, glossary last. The "how to read this" panel
+     stays available but stops blocking the answer above the fold. */
+  main { display: flex; flex-direction: column; }
+  .notes { order: 10; }
 }
 
 @media (max-width: 480px) {
   .now-grid { gap: 0.5rem; }
   .metric-value { font-size: 0.95em; white-space: nowrap; }
+  /* Sparkline is ambient ornament — hide on phone where the tide line
+     itself is wide enough to fill the row. */
+  .now-wave { display: none; }
 }
 
 /* Defensive: any future CSS animations/transitions inherit a near-instant duration
@@ -243,15 +258,15 @@ h1 {
   }
 }
 
+/* Inlined under the now-card, no chrome — hairline cyan rule, label + value
+   stacked. Visual weight matches a footnote, not a competing card. */
 .window {
-  margin-bottom: 1.6em;
-  padding: 1.1rem 1.4rem;
-  background: #0a0a14;
-  border: 1px solid #1a1a2e;
-  border-radius: 8px;
+  margin: -0.4em 0 1.6em;
+  padding: 0.7rem 0 0;
+  border-top: 1px solid rgba(0, 206, 209, 0.18);
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.2rem;
 }
 
 .window-label {
@@ -327,6 +342,35 @@ h1 {
   letter-spacing: 0.04em;
 }
 
+/* Per-day peak score, derived in JS from data.score.forecast. Sits under the
+   day name as the headline answer for that day; rest of the card is the
+   raw inputs. Color bands match .now-score-verdict. */
+.outlook-day-score {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  font-family: 'JetBrains Mono', monospace;
+  margin-bottom: 0.4rem;
+}
+
+.outlook-day-score-value {
+  color: #7d8793;
+  font-size: 0.85em;
+}
+
+.outlook-day-score-verdict {
+  color: #7d8793;
+  font-size: 0.78em;
+  font-style: italic;
+  letter-spacing: 0.04em;
+}
+
+.outlook-day-score-verdict[data-band="skip"]      { color: #7d8793; }
+.outlook-day-score-verdict[data-band="marginal"]  { color: #c08842; }
+.outlook-day-score-verdict[data-band="fun-sized"] { color: #00CED1; }
+.outlook-day-score-verdict[data-band="go now"]    { color: #FF1493; font-weight: 600; }
+.outlook-day-score-verdict[data-band="fires"]     { color: #FF1493; font-weight: 700; }
+
 .outlook-row {
   display: flex;
   justify-content: space-between;
@@ -392,7 +436,7 @@ h1 {
 }
 
 @media (max-width: 480px) {
-  .outlook-grid { gap: 0.5rem; }
+  .outlook-grid { grid-template-columns: 1fr; gap: 0.5rem; }
   .outlook-day { padding: 0.6rem 0.7rem; }
   .outlook-value { font-size: 0.82em; }
 }
@@ -466,8 +510,7 @@ h1 {
   font-style: italic;
   color: #7d8793;
   letter-spacing: 0.02em;
-  margin-top: -1.4em;     /* tuck against the tagline */
-  margin-bottom: 2em;
+  margin-top: 0.3em;
 }
 
 a { color: #00CED1; text-decoration: none; }

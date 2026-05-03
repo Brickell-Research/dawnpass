@@ -162,8 +162,8 @@ function render(data) {
         : '—';
   }
 
-  // 3-day outlook strip — wave + tide highs/lows.
-  renderOutlook(els.outlookGrid, marine?.forecast ?? [], tide);
+  // 3-day outlook strip — wave + tide highs/lows + per-day peak score.
+  renderOutlook(els.outlookGrid, marine?.forecast ?? [], tide, data.score?.forecast ?? []);
 
   // Recommendation engine output (computed by src/dawnpass/score/orchestrator.gleam):
   //   data.score.now            — current Conditions score (0-10 + verdict + sub-scores + vetoes)
@@ -412,7 +412,7 @@ function drawLayer(pathEl, layer) {
 //   period  — median wave_period_s rounded to seconds
 //   swell   — circular-mean wave_direction_deg as a cardinal (handles
 //             the 0/360 wrap-around correctly)
-function renderOutlook(gridEl, forecastHours, tide) {
+function renderOutlook(gridEl, forecastHours, tide, scoreForecast) {
   if (!gridEl) return;
   gridEl.replaceChildren();
 
@@ -425,9 +425,34 @@ function renderOutlook(gridEl, forecastHours, tide) {
     return;
   }
 
+  const peakByDay = peakScoreByLocalDay(scoreForecast);
   for (const day of days) {
-    gridEl.appendChild(buildDayCard(day, tide));
+    const key = localDayKey(day.date);
+    gridEl.appendChild(buildDayCard(day, tide, peakByDay.get(key) ?? null));
   }
+}
+
+// Roll up the per-hour score forecast into a per-day peak. Future-only —
+// past hours don't help the user decide whether to surf later this week.
+function peakScoreByLocalDay(scoreForecast) {
+  const now = Date.now();
+  const peaks = new Map();
+  for (const entry of scoreForecast) {
+    const d = new Date(entry.at_utc);
+    if (isNaN(d.getTime()) || d.getTime() < now) continue;
+    const s = entry.score;
+    if (!s || s.overall == null) continue;
+    const key = localDayKey(d);
+    const prev = peaks.get(key);
+    if (!prev || s.overall > prev.overall) {
+      peaks.set(key, { overall: s.overall, verdict: s.verdict ?? '' });
+    }
+  }
+  return peaks;
+}
+
+function localDayKey(d) {
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 }
 
 function groupForecastByLocalDay(forecastHours, maxDays) {
@@ -483,7 +508,7 @@ function circularMean(degrees) {
   return mean;
 }
 
-function buildDayCard(day, tide) {
+function buildDayCard(day, tide, peak) {
   const card = document.createElement('article');
   card.className = 'outlook-day';
 
@@ -491,6 +516,15 @@ function buildDayCard(day, tide) {
   name.className = 'outlook-day-name';
   name.textContent = day.label;
   card.appendChild(name);
+
+  if (peak) {
+    const score = document.createElement('div');
+    score.className = 'outlook-day-score';
+    score.innerHTML =
+      `<span class="outlook-day-score-value">${peak.overall.toFixed(1)}/10</span>` +
+      `<span class="outlook-day-score-verdict" data-band="${peak.verdict}">${peak.verdict}</span>`;
+    card.appendChild(score);
+  }
 
   card.appendChild(outlookRow('wave',   formatWaveRange(day)));
   card.appendChild(outlookRow('period', formatOutlookPeriod(day)));
