@@ -17,3 +17,5 @@ erl_crash.dump
 
 # Local-only scratch (not the bot-committed data/ or public/ dirs)
 *.scratch
+.vercel
+.env*.local
