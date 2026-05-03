@@ -43,3 +43,4 @@ A Playwright MCP server is wired into `.mcp.json` so Claude can drive a real hea
 - **Activation:** restart Claude Code in this repo and approve the `playwright` server when prompted (project-scoped MCPs require explicit trust the first time).
 - **Default mode:** headless + isolated + accessibility-tree snapshots. Reserve `browser_take_screenshot` for visual regressions; text snapshots are far cheaper.
 - **Run artifacts** land in `.playwright-mcp/` (gitignored).
+- **Screenshots:** when calling `browser_take_screenshot`, always pass `filename: ".playwright-mcp/<name>.png"`. A bare filename writes to the repo root and can sneak into a commit.
