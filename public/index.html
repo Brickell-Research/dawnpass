@@ -133,11 +133,16 @@
               </clipPath>
             </defs>
 
-            <!-- swell arrows (cyan) — rotates with real swell direction -->
-            <g id="map-swell-arrows" clip-path="url(#map-water-clip)" transform="rotate(0 42 195)" stroke="#00CED1" stroke-width="1.1" fill="none" stroke-linecap="round" opacity="0.7">
-              <line x1="34" y1="225" x2="52" y2="213" marker-end="url(#map-swarrow)"/>
-              <line x1="32" y1="200" x2="50" y2="188" marker-end="url(#map-swarrow)"/>
-              <line x1="34" y1="175" x2="52" y2="163" marker-end="url(#map-swarrow)"/>
+            <!-- swell arrows (cyan) — rotates with real swell direction.
+                 Outer group does the clipping in the SVG's user space; inner
+                 group does the rotation. Splitting them keeps the clip rect
+                 stable regardless of rotation. -->
+            <g clip-path="url(#map-water-clip)">
+              <g id="map-swell-arrows" transform="rotate(0 42 195)" stroke="#00CED1" stroke-width="1.1" fill="none" stroke-linecap="round" opacity="0.7">
+                <line x1="34" y1="225" x2="52" y2="213" marker-end="url(#map-swarrow)"/>
+                <line x1="32" y1="200" x2="50" y2="188" marker-end="url(#map-swarrow)"/>
+                <line x1="34" y1="175" x2="52" y2="163" marker-end="url(#map-swarrow)"/>
+              </g>
             </g>
             <text id="map-swell" x="29" y="240" font-family="JetBrains Mono, ui-monospace, monospace" font-size="6" fill="#00CED1" font-style="italic" opacity="0.85" letter-spacing="0.06em">SW</text>
 
