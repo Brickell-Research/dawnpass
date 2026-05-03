@@ -1,0 +1,33 @@
+src/dawnpass/sources/open_meteo_forecast.gleam
+  943a12c024bc3eca 28-31,41,66-67,86-87,99-103,110-111,118-119,129,133,135-136,141,143,145,168,178
+test/wave_spec_test.gleam
+  943a12c024bc3eca 36-37
+public/index.html
+  943a12c024bc3eca 173-196
+public/wave.js
+  943a12c024bc3eca 41-42,45-48,145-157,574,578,580,664-666
+src/dawnpass/sources/ndbc.gleam
+  943a12c024bc3eca 31-36,109-111,113-142,153-154,201-202
+public/styles.css
+  943a12c024bc3eca 76
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "97f347a522cf6c447c643152ce35b45cef8c233f",
+  "prompts": {
+    "943a12c024bc3eca": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5e176387-833f-49fe-aa04-a1eb689a40ce",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "robertDurst",
+      "messages": [],
+      "total_additions": 122,
+      "total_deletions": 25,
+      "accepted_lines": 1787,
+      "overriden_lines": 0
+    }
+  }
+}
