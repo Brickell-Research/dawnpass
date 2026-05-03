@@ -1,0 +1,61 @@
+name: forecast
+
+# Hourly refresh of public/data/latest.json. Runs `gleam run` to fetch
+# NDBC + NOAA + Open-Meteo, writes the combined JSON, commits any change
+# back to main as `dawnpass-bot`. Vercel auto-deploys on push.
+#
+# Loop prevention:
+#   - no `on: push` trigger here, so bot's own commits can't re-fire this
+#   - ci.yml has paths-ignore for public/** so bot commits don't run CI
+#   - concurrency group serializes runs; if one tick is slow the next queues
+
+on:
+  schedule:
+    - cron: '5 * * * *'      # hourly at :05 UTC (offset from herd + buoy publish lag)
+  workflow_dispatch:           # manual trigger button in GH Actions UI
+
+permissions:
+  contents: write              # bot needs to push public/data/ commits
+
+concurrency:
+  group: forecast
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_TOKEN_ACTION }}
+
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: '28.5'
+          gleam-version: '1.16.0'
+
+      - name: Cache build
+        uses: actions/cache@v4
+        with:
+          path: |
+            build
+            ~/.cache/gleam
+          key: ${{ runner.os }}-gleam-${{ hashFiles('manifest.toml') }}
+          restore-keys: ${{ runner.os }}-gleam-
+
+      - run: gleam deps download
+      - run: gleam build
+      - run: gleam run
+
+      - name: Commit refresh
+        run: |
+          git config user.name 'dawnpass-bot'
+          git config user.email 'bot@brickellresearch.org'
+          mkdir -p public/data
+          git add public/data
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "refresh: $(date -u +%FT%H:%MZ)"
+            git push
+          fi
