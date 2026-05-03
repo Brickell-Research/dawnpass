@@ -12,14 +12,18 @@ const KNOTS_PER_MS = 1.94384;
 const FEET_PER_M = 3.28084;
 
 const els = {
-  wave:    document.getElementById('m-wave'),
-  period:  document.getElementById('m-period'),
-  wind:    document.getElementById('m-wind'),
-  tide:    document.getElementById('m-tide'),
-  source:  document.getElementById('now-source'),
-  updated: document.getElementById('now-updated'),
-  path:    document.getElementById('wave-path'),
+  wave:      document.getElementById('m-wave'),
+  period:    document.getElementById('m-period'),
+  wind:      document.getElementById('m-wind'),
+  tide:      document.getElementById('m-tide'),
+  source:    document.getElementById('now-source'),
+  updated:   document.getElementById('now-updated'),
+  path:      document.getElementById('wave-path'),
+  card:      document.querySelector('.now'),
+  stalePill: document.getElementById('stale-pill'),
 };
+
+const STALE_THRESHOLD_MS = 2 * 60 * 60 * 1000;  // 2 hours
 
 // Wave animation state. Updated by render() when fresh data lands.
 // `period_s` switches the motion mode: number → step-tick at ocean speed,
@@ -66,6 +70,18 @@ function render(data) {
   els.updated.textContent = r.observed_at_utc
     ? `updated ${formatTimestamp(r.observed_at_utc)}`
     : 'no timestamp';
+
+  // Buoy older than STALE_THRESHOLD_MS (or unknown) marks the card stale.
+  const obs = r.observed_at_utc ? new Date(r.observed_at_utc) : null;
+  const stale = !obs || isNaN(obs.getTime())
+    || (Date.now() - obs.getTime()) > STALE_THRESHOLD_MS;
+  if (stale) {
+    els.card.setAttribute('data-stale', '');
+    els.stalePill.removeAttribute('hidden');
+  } else {
+    els.card.removeAttribute('data-stale');
+    els.stalePill.setAttribute('hidden', '');
+  }
 
   if (r.wave_height_m != null && r.dominant_period_s != null) {
     wave.amplitude  = clamp(r.wave_height_m * 20, 5, 40);

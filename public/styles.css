@@ -52,11 +52,34 @@ h1 {
   margin: 0;
 }
 
+.now-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .now-source {
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.78em;
   color: #7d8793;
   letter-spacing: 0.04em;
+}
+
+.stale-pill {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #c08842;
+  border: 1px solid #c08842;
+  border-radius: 3px;
+  padding: 0.05rem 0.4rem;
+  vertical-align: middle;
+}
+
+.now[data-stale] .metric-value,
+.now[data-stale] .tide-value {
+  opacity: 0.5;
 }
 
 .now-grid {
