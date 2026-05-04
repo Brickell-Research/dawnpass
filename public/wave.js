@@ -1,137 +1,157 @@
 // dawnpass · client-side renderer for /data/latest.json
 //
-// Reads the buoy + tide + marine + pre-computed wave block from the shared
-// JSON the Gleam ingest writes, populates the Now card, and animates a
+// Reads the buoy + tide + per-spot blocks from the shared JSON the Gleam
+// ingest writes, populates each spot's Now card, and animates each spot's
 // three-component SVG (cyan swell + white mean + pink chop).
 //
-// The wave-layer math (source-precedence, clamps, Tm fallback, chop wind
-// threshold) lives in src/dawnpass/wave_spec.gleam — this file is purely
-// a renderer. The JSON shape it expects is documented in wave_spec.encode.
+// Per-spot architecture: every <article class="spot" data-spot="..."> on
+// the page binds its own element handles + its own wave-layer state.
+// Source-precedence math (wave_spec.gleam) and scoring math (score/) live
+// in Gleam — this file is purely a renderer.
 //
-// Degrades gracefully: missing fields render "—"; missing data file shows a
-// status hint; if the wave block is silent, only the mean layer runs as a
-// slow breath + drift ("the buoy is silent but we're listening").
+// JSON shape it expects:
+//   { "buoy_<station>": {...}, "tide_<station>": {...},
+//     "spots": { "<slug>": { name, latitude, longitude,
+//                            marine, wind, wave, score }, ... } }
+//
+// Degrades gracefully: missing fields render "—"; missing spots in the
+// JSON leave their cards in their initial empty state.
 
 const KNOTS_PER_MS = 1.94384;
 const FEET_PER_M = 3.28084;
 
-const els = {
-  wave:      document.getElementById('m-wave'),
-  period:    document.getElementById('m-period'),
-  wind:      document.getElementById('m-wind'),
-  tide:      document.getElementById('m-tide'),
-  updated:   document.getElementById('now-updated'),
-  swell:        document.getElementById('wave-swell'),
-  mean:         document.getElementById('wave-mean'),
-  chop:         document.getElementById('wave-chop'),
-  card:         document.querySelector('.now'),
-  stalePill:    document.getElementById('stale-pill'),
-  mapSwell:        document.getElementById('map-swell'),
-  mapSwellArrows:  document.getElementById('map-swell-arrows'),
-  mapWind:         document.getElementById('map-wind'),
-  mapWindArrow:    document.getElementById('map-wind-arrow'),
-  windTag:         document.getElementById('m-wind-tag'),
-  waveTag:         document.getElementById('m-wave-tag'),
-  outlookGrid:     document.getElementById('outlook-grid'),
-  meanLabel:       document.getElementById('wave-mean-label'),
-  nowScore:        document.getElementById('now-score'),
-  nowScoreValue:   document.getElementById('now-score-value'),
-  nowScoreVerdict: document.getElementById('now-score-verdict'),
-  windowWhen:      document.getElementById('window-when'),
-  windowMeta:      document.getElementById('window-meta'),
-  mapAirTemp:      document.getElementById('map-air-temp'),
-  mapWaterTemp:    document.getElementById('map-water-temp'),
-  mapPressure:     document.getElementById('map-pressure'),
+// Beach orientation per spot. Drives the offshore/onshore/sideshore tag
+// next to the wind metric. Hardcoded here (rather than read from the JSON
+// per spot) because it's a UI display concern — the math layer's
+// scoring already accounts for it via spot_config.beach_normal_deg.
+const SPOT_BEACH_NORMALS = {
+  pag: 270,
+  venice_south: 250,
 };
+
+// Map directional indicator constants. Arrows point TOWARD the source
+// (FROM direction). Rotation:  rotation = fromDeg - <natural compass angle>.
+const SWELL_NATURAL_DEG = 56;
+const WIND_NATURAL_DEG = 90;
+
+const STALE_THRESHOLD_MS = 2 * 60 * 60 * 1000;
 
 const C_TO_F_OFFSET = 32;
 const C_TO_F_MULT = 9 / 5;
 function celsiusToF(c) { return c * C_TO_F_MULT + C_TO_F_OFFSET; }
 
+// Score threshold above which an hour counts as "rideable" (matches the
+// "fun-sized" verdict band in spots.gleam).
+const RIDEABLE_SCORE_THRESHOLD = 5;
+
+// Mean-vs-swell period gap below which the mean line is visual noise.
+const MEAN_DIVERGENCE_THRESHOLD_S = 1.5;
+
 const PRESSURE_TREND_HOURS = 6;
 const PRESSURE_TREND_THRESHOLD_HPA = 1.0;
 
-// Returns ↑ / ↓ / → based on forecast +6h pressure vs current. Empty string
-// when either side is missing — caller decides what to render.
-function pressureTrendArrow(windBlock) {
-  const now = windBlock?.pressure_hpa;
-  if (now == null || !Array.isArray(windBlock?.forecast)) return '';
-  const target = Date.now() + PRESSURE_TREND_HOURS * 3600 * 1000;
-  const future = windBlock.forecast.find(h => {
-    const t = new Date(h.at_utc).getTime();
-    return !isNaN(t) && t >= target;
-  });
-  if (future?.pressure_hpa == null) return '';
-  const delta = future.pressure_hpa - now;
-  if (delta >  PRESSURE_TREND_THRESHOLD_HPA) return '↑';
-  if (delta < -PRESSURE_TREND_THRESHOLD_HPA) return '↓';
-  return '→';
+// === Per-spot state ===
+//
+// Populated at startup from the DOM. Each entry binds one spot's element
+// handles and its own wave-layer state. The render() function loops over
+// these and writes per-spot data; the animation tick walks them too.
+
+const spots = [];
+
+function bindSpotElements(container) {
+  return {
+    container,
+    wave:           container.querySelector('.m-wave'),
+    period:         container.querySelector('.m-period'),
+    wind:           container.querySelector('.m-wind'),
+    tide:           container.querySelector('.m-tide'),
+    updated:        container.querySelector('.now-updated'),
+    swell:          container.querySelector('.wave-swell'),
+    mean:           container.querySelector('.wave-mean'),
+    chop:           container.querySelector('.wave-chop'),
+    card:           container.querySelector('.now'),
+    stalePill:      container.querySelector('.stale-pill'),
+    mapSwell:       container.querySelector('.map-swell'),
+    mapSwellArrows: container.querySelector('.map-swell-arrows'),
+    mapWind:        container.querySelector('.map-wind'),
+    mapWindArrow:   container.querySelector('.map-wind-arrow'),
+    windTag:        container.querySelector('.m-wind-tag'),
+    waveTag:        container.querySelector('.m-wave-tag'),
+    outlookGrid:    container.querySelector('.outlook-grid'),
+    nowScore:       container.querySelector('.now-score'),
+    nowScoreValue:  container.querySelector('.now-score-value'),
+    nowScoreVerdict:container.querySelector('.now-score-verdict'),
+    windowWhen:     container.querySelector('.window-when'),
+    windowMeta:     container.querySelector('.window-meta'),
+    mapAirTemp:     container.querySelector('.map-air-temp'),
+    mapWaterTemp:   container.querySelector('.map-water-temp'),
+    mapPressure:    container.querySelector('.map-pressure'),
+    meanLabel:      container.querySelector('.wave-mean-label'),
+  };
 }
 
-// Beach orientation for wind-quality classification. PAG faces west, so
-// the beach normal (perpendicular pointing to open water) is 270°. Moves
-// to spot config when spots/<spot>.json lands.
-const PAG_BEACH_NORMAL_DEG = 270;
+function initSpots() {
+  for (const article of document.querySelectorAll('.spot')) {
+    const slug = article.dataset.spot;
+    spots.push({
+      slug,
+      els: bindSpotElements(article),
+      beachNormal: SPOT_BEACH_NORMALS[slug] ?? 270,
+      wave: {
+        swell: { amp: 0, lambda: 200, period_s: null, phase: 0 },
+        mean:  { amp: 0, lambda: 200, period_s: null, phase: 0 },
+        chop:  { amp: 0, lambda: 30,  period_s: 2,    phase: 0 },
+      },
+      motionMode: 'breath',
+    });
+  }
+}
 
-// Map directional indicator constants. Arrows point TOWARD the source
-// (FROM direction) — i.e. the same bearing the cardinal label names. So
-// "wind NNE" = arrow pointing NNE, intuitively reading "the wind is
-// coming from up there". Rotation math:
-//   rotation = fromDeg - <natural compass angle of the arrow as drawn>
-//
-// SWELL_NATURAL_DEG: the three diagonal swell arrows are drawn pointing
-//   NE (compass ~56°). For wave from 225° (SW), arrows rotate to point SW.
-// WIND_NATURAL_DEG: the wind arrow is drawn horizontally pointing East
-//   (compass 90°).
-const SWELL_NATURAL_DEG = 56;
-const WIND_NATURAL_DEG = 90;
-
-const STALE_THRESHOLD_MS = 2 * 60 * 60 * 1000;  // 2 hours
-
-// Wave animation state — three superimposed components, each with its own
-// amplitude / wavelength (px in viewBox) / period (real seconds) / phase.
-// render() updates the numeric fields on each data load; startMotion() drives
-// the master tick that advances each layer's phase.
-//
-// `mean.period_s` is the canonical "data present" signal — when null, we're
-// in breath fallback (mean layer only) and the other two layers stay at amp=0.
-const wave = {
-  swell: { amp: 0, lambda: 200, period_s: null, phase: 0 },
-  mean:  { amp: 0, lambda: 200, period_s: null, phase: 0 },
-  chop:  { amp: 0, lambda: 30,  period_s: 2,    phase: 0 },
-};
+// === Data load ===
 
 async function load() {
   try {
     const res = await fetch('/data/latest.json', { cache: 'no-store' });
-    if (!res.ok) return setStatus('no data file yet');
+    if (!res.ok) return setStatusAll('no data file yet');
     const data = await res.json();
     render(data);
   } catch (e) {
-    setStatus('fetch failed');
+    setStatusAll('fetch failed');
+  }
+}
+
+function setStatusAll(msg) {
+  for (const s of spots) {
+    if (s.els.updated) s.els.updated.textContent = msg;
   }
 }
 
 function render(data) {
-  // JSON shape: { "buoy_<station>": {...}, "tide_<station>": {...}, "marine_<spot>": {...}, ... }
-  // All sources are optional — buoy goes silent for hours at a time, NOAA
-  // tides 503s, marine occasionally fails. Render whatever we have, label
-  // missing pieces with "—", and only short-circuit if there's literally
-  // no data at all (no `wave` block AND no score AND no tide).
-  const buoyKey   = Object.keys(data).find(k => k.startsWith('buoy_'));
-  const tideKey   = Object.keys(data).find(k => k.startsWith('tide_'));
-  const marineKey = Object.keys(data).find(k => k.startsWith('marine_'));
-  const windKey   = Object.keys(data).find(k => k.startsWith('wind_'));
-  const r         = buoyKey   ? data[buoyKey]   : null;
-  const tide      = tideKey   ? data[tideKey]   : null;
-  const marine    = marineKey ? data[marineKey] : null;
-  const windBlock = windKey   ? data[windKey]   : null;
-  const w         = data.wave ?? null;  // pre-computed by wave_spec.gleam
-  const scoreBlock = data.score ?? null;
+  // Shared sources at the top level. Per-spot blocks under data.spots.<slug>.
+  const buoyKey = Object.keys(data).find(k => k.startsWith('buoy_'));
+  const tideKey = Object.keys(data).find(k => k.startsWith('tide_'));
+  const r       = buoyKey ? data[buoyKey] : null;
+  const tide    = tideKey ? data[tideKey] : null;
+  const spotsData = data.spots ?? {};
 
-  // Wind: prefer the buoy's observed values, fall back to the open-meteo
-  // wind block's "now" values (top-level wind_speed_ms / wind_direction_deg
-  // are the model's current step at the spot lat/lon).
+  for (const s of spots) {
+    const spotData = spotsData[s.slug];
+    if (spotData) {
+      renderSpot(s, spotData, r, tide);
+    }
+  }
+
+  startMotion();
+}
+
+function renderSpot(s, spotData, r, tide) {
+  const els = s.els;
+  const w         = spotData.wave ?? null;
+  const marine    = spotData.marine ?? null;
+  const windBlock = spotData.wind ?? null;
+  const scoreBlock = spotData.score ?? null;
+
+  // Wind: prefer buoy's observed values, fall back to per-spot wind block.
   const windSpeedMs = r?.wind_speed_ms ?? windBlock?.wind_speed_ms ?? null;
   const windDirDeg  = r?.wind_direction_deg ?? windBlock?.wind_direction_deg ?? null;
 
@@ -145,9 +165,8 @@ function render(data) {
 
   els.wind.textContent = formatWind(windSpeedMs, windDirDeg);
 
-  // Wind quality badge — offshore (clean) / onshore (blown out) / sideshore.
   if (windDirDeg != null) {
-    const q = windQuality(windDirDeg, PAG_BEACH_NORMAL_DEG);
+    const q = windQuality(windDirDeg, s.beachNormal);
     els.windTag.textContent = q;
     els.windTag.setAttribute('data-quality', q);
   } else {
@@ -157,65 +176,55 @@ function render(data) {
 
   renderTide(els.tide, tide);
 
-  // === Live map directional indicators (notebook chart) ===
-  // Swell arrows + label use w.direction_deg (already source-resolved by
-  // wave_spec.gleam). Wind arrow uses the same source-precedence as the
-  // wind metric above. Both arrows point TOWARD the source (FROM bearing).
+  // Map directional indicators (notebook chart).
   const swellDir = w?.direction_deg ?? null;
   if (swellDir != null) {
-    els.mapSwell.textContent = cardinal(swellDir);
-    rotateMapArrow(els.mapSwellArrows, swellDir, SWELL_NATURAL_DEG, 42, 195);
+    if (els.mapSwell) els.mapSwell.textContent = cardinal(swellDir);
+    if (els.mapSwellArrows) {
+      rotateMapArrowGroup(els.mapSwellArrows, swellDir, SWELL_NATURAL_DEG);
+    }
     els.waveTag.textContent = `from ${cardinal(swellDir)}`;
   } else {
     els.waveTag.textContent = '';
   }
 
   if (windDirDeg != null) {
-    els.mapWind.textContent = cardinal(windDirDeg);
-    rotateMapArrow(els.mapWindArrow, windDirDeg, WIND_NATURAL_DEG, 170, 100);
+    if (els.mapWind) els.mapWind.textContent = cardinal(windDirDeg);
+    if (els.mapWindArrow) {
+      rotateMapArrowGroup(els.mapWindArrow, windDirDeg, WIND_NATURAL_DEG);
+    }
   }
 
-  // Map temps — air from open-meteo, water from NDBC buoy. Either can be
-  // null (buoy goes dark for hours; open-meteo less often).
   if (els.mapAirTemp) {
-    els.mapAirTemp.textContent =
-      windBlock?.air_temp_c != null
-        ? `${celsiusToF(windBlock.air_temp_c).toFixed(0)}°F`
-        : '—';
+    els.mapAirTemp.textContent = windBlock?.air_temp_c != null
+      ? `${celsiusToF(windBlock.air_temp_c).toFixed(0)}°F`
+      : '—';
   }
   if (els.mapWaterTemp) {
-    // Buoy is the primary water-temp source (offshore but local). Open-Meteo
-    // Marine ships sea_surface_temperature at the spot lat/lon and is the
-    // model fallback when NDBC is silent — accuracy is comparable for the
-    // glanceable use case on the now-card.
     const wtmpC = r?.wtmp_c ?? marine?.sst_c ?? null;
     els.mapWaterTemp.textContent =
       wtmpC != null ? `${celsiusToF(wtmpC).toFixed(0)}°F` : '—';
   }
-
   if (els.mapPressure) {
-    // Pressure trend = sign(forecast +6h - current) past a ±1 hPa threshold.
-    // Falling pressure on the Gulf often precedes a frontal passage that
-    // brings W/NW winds and the rare swell that actually gets PAG firing,
-    // so the arrow is the surfer-relevant signal — value alone is filler.
     const pressureNow = windBlock?.pressure_hpa ?? null;
     const arrow = pressureTrendArrow(windBlock);
     els.mapPressure.textContent =
       pressureNow != null ? `${pressureNow.toFixed(0)} ${arrow}`.trim() : '—';
   }
 
-  // 5-day outlook strip — wave + tide highs/lows + per-day rideable hours.
-  renderOutlook(els.outlookGrid, marine?.forecast ?? [], tide, scoreBlock?.forecast ?? []);
+  // 5-day outlook strip.
+  renderOutlook(
+    els.outlookGrid,
+    marine?.forecast ?? [],
+    tide,
+    scoreBlock?.forecast ?? [],
+  );
 
-  // Recommendation engine output (computed by src/dawnpass/score/orchestrator.gleam):
-  //   data.score.now            — current Conditions score (0-10 + verdict + sub-scores + vetoes)
-  //   data.score.windows        — hysteresis-detected rideable windows in the next 5 days
-  //   data.score.best_overall   — highest-composite window across the horizon
-  renderNowScore(scoreBlock?.now);
-  renderNextWindow(scoreBlock?.best_overall);
+  // Score + next window.
+  renderNowScore(els, scoreBlock?.now);
+  renderNextWindow(els, scoreBlock?.best_overall);
 
-  // "updated …" stamp uses the freshest available source timestamp,
-  // preferring buoy → marine → wind → tide. Stale check uses the same.
+  // "updated …" stamp uses the freshest available source timestamp.
   const observedIso =
     r?.observed_at_utc
     ?? marine?.observed_at_utc
@@ -237,50 +246,35 @@ function render(data) {
     els.stalePill.setAttribute('hidden', '');
   }
 
-  // Apply pre-computed wave layers. The math layer (clamps, source-
-  // precedence, Tm fallback, chop wind threshold) lives in
-  // src/dawnpass/wave_spec.gleam — this is just the copy.
-  applyLayers(w);
-
-  startMotion();
+  // Apply pre-computed wave layers to this spot's animation state.
+  applyLayers(s, w);
 }
 
-// Copy the server-computed layer params from the JSON `wave` block into
-// the local animation state. Silent state (or missing block) → breath
-// fallback (mean layer only).
-function applyLayers(w) {
+function applyLayers(s, w) {
   if (!w || w.source === 'silent') {
-    wave.swell.amp     = 0;
-    wave.chop.amp      = 0;
-    wave.mean.lambda   = 200;
-    wave.mean.period_s = null;
-    // mean.amp is owned by the breath loop in this mode; don't fight it
+    s.wave.swell.amp     = 0;
+    s.wave.chop.amp      = 0;
+    s.wave.mean.lambda   = 200;
+    s.wave.mean.period_s = null;
+    s.motionMode = 'breath';
     return;
   }
-  wave.swell.amp      = w.swell.amp;
-  wave.swell.lambda   = w.swell.lambda;
-  wave.swell.period_s = w.swell.period_s;
-
-  wave.mean.amp       = w.mean.amp;
-  wave.mean.lambda    = w.mean.lambda;
-  wave.mean.period_s  = w.mean.period_s;
-
-  wave.chop.amp       = w.chop.amp;
-  wave.chop.lambda    = w.chop.lambda;
-  wave.chop.period_s  = w.chop.period_s;
+  s.wave.swell.amp      = w.swell.amp;
+  s.wave.swell.lambda   = w.swell.lambda;
+  s.wave.swell.period_s = w.swell.period_s;
+  s.wave.mean.amp       = w.mean.amp;
+  s.wave.mean.lambda    = w.mean.lambda;
+  s.wave.mean.period_s  = w.mean.period_s;
+  s.wave.chop.amp       = w.chop.amp;
+  s.wave.chop.lambda    = w.chop.lambda;
+  s.wave.chop.period_s  = w.chop.period_s;
+  s.motionMode = (s.wave.mean.period_s != null) ? 'step' : 'breath';
 }
 
-// Classify a wind FROM-bearing relative to the spot's beach normal as
-// offshore / onshore / sideshore. The beach normal is the perpendicular
-// pointing OUT to open water — for PAG (west-facing), 270°. Wind from
-// the same bearing as the normal (e.g. wind FROM the W onto a W-facing
-// beach) is onshore; wind from the opposite (FROM the E) is offshore.
-//
-// Threshold is ±45° around each axis: ≤45° from the offshore direction →
-// 'offshore'; ≥135° from offshore → 'onshore'; otherwise 'sideshore'.
+// === Wind-quality classification ===
+
 function windQuality(fromDeg, beachNormalDeg) {
   const offshoreDeg = (beachNormalDeg + 180) % 360;
-  // Signed angular distance from offshore direction, normalised to [-180, +180].
   const diff = ((fromDeg - offshoreDeg + 540) % 360) - 180;
   const abs = Math.abs(diff);
   if (abs <= 45)  return 'offshore';
@@ -288,19 +282,22 @@ function windQuality(fromDeg, beachNormalDeg) {
   return 'sideshore';
 }
 
-// Rotate a map arrow group so it points TOWARD the source — `fromDeg` is
-// the bearing the wave/wind is coming from, and that's where we want the
-// arrow to visually point. naturalDeg is the compass angle the arrow
-// already points at when the rotation is 0. cx/cy is the rotation center.
-function rotateMapArrow(group, fromDeg, naturalDeg, cx, cy) {
-  if (!group) return;
+// Rotate a map arrow group so it points TOWARD the source.
+//
+// PAG and Venice arrow groups have different rotation centres baked into
+// their `transform="rotate(0 cx cy)"` attributes (because the chart
+// geometries differ), so we re-read the existing centre rather than
+// passing it in. Reads the current transform, rebuilds with the new angle.
+function rotateMapArrowGroup(group, fromDeg, naturalDeg) {
+  const existing = group.getAttribute('transform') || 'rotate(0 0 0)';
+  const m = existing.match(/rotate\(\s*[-\d.]+\s+([-\d.]+)\s+([-\d.]+)\s*\)/);
+  const cx = m ? parseFloat(m[1]) : 0;
+  const cy = m ? parseFloat(m[2]) : 0;
   const rotation = fromDeg - naturalDeg;
   group.setAttribute('transform', `rotate(${rotation.toFixed(1)} ${cx} ${cy})`);
 }
 
-function setStatus(msg) {
-  els.updated.textContent = msg;
-}
+// === Helpers ===
 
 function formatWind(ms, deg) {
   if (ms == null && deg == null) return '—';
@@ -315,8 +312,6 @@ function cardinal(deg) {
   return dirs[Math.round(deg / 22.5) % 16];
 }
 
-// Both formatters render in the viewer's local timezone via Intl. Server-side
-// data is always UTC ISO; the conversion happens in the browser at render time.
 const TIME_OPTS = { hour: '2-digit', minute: '2-digit', hour12: false, timeZoneName: 'short' };
 const DATE_OPTS = { month: 'long', day: 'numeric', year: 'numeric' };
 
@@ -332,8 +327,6 @@ function formatTimeOnly(iso) {
   return d.toLocaleTimeString([], TIME_OPTS);
 }
 
-// Render the tide line as separate `·`-joined chunks so each chunk wraps
-// as a unit on narrow viewports — never mid-string ("high at" / "12:35 MDT").
 function renderTide(el, t) {
   el.textContent = '';
   if (!t) { el.textContent = '—'; return; }
@@ -353,44 +346,47 @@ function renderTide(el, t) {
 
 // === Motion ===
 //
-// Two modes, picked by render() via wave.mean.period_s:
-//   step-tick — single master 1Hz interval. Each tick advances every active
-//               layer's phase by 2π/period_s. Different layer periods produce
-//               visibly different drift speeds — that relative drift is the
-//               "messiness" reveal between swell and mean.
-//   breath    — only the mean layer renders. Slow amplitude oscillation +
-//               drift. Reads as quietly alive when buoy + marine are silent.
-//
-// startMotion() is idempotent: render() calls it on every data load.
+// One master interval drives step-tick mode (data present); one master RAF
+// loop drives breath fallback mode (data silent). Both walk all spots on
+// each tick — every spot has its own wave state and motionMode. A spot in
+// step mode advances its phase by 2π/period_s per second; a spot in breath
+// mode oscillates its mean amp + drifts.
 
 const STEP_HZ = 1;
 const BREATH_PERIOD_S = 10;
 const BREATH_AMP_MIN = 4;
 const BREATH_AMP_MAX = 7;
-const BREATH_DRIFT_PERIOD_S = 30;  // one wavelength per 30s — slow ambient motion
+const BREATH_DRIFT_PERIOD_S = 30;
 
 let stepIntervalId = null;
 let breathRafId = null;
 
 function startMotion() {
   stopMotion();
-  // Honor OS-level reduced-motion preference: render one static frame, no loop.
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    drawAll();
+    drawAllSpots();
     return;
   }
-  if (wave.mean.period_s != null) {
-    drawAll();
+
+  const stepSpots = spots.filter(s => s.motionMode === 'step');
+  const breathSpots = spots.filter(s => s.motionMode === 'breath');
+
+  if (stepSpots.length > 0) {
+    drawAllSpots();
     stepIntervalId = setInterval(() => {
-      for (const layer of [wave.swell, wave.mean, wave.chop]) {
-        if (layer.period_s != null && layer.amp > 0) {
-          layer.phase += (2 * Math.PI) / layer.period_s;
+      for (const s of stepSpots) {
+        for (const layer of [s.wave.swell, s.wave.mean, s.wave.chop]) {
+          if (layer.period_s != null && layer.amp > 0) {
+            layer.phase += (2 * Math.PI) / layer.period_s;
+          }
         }
+        drawAllForSpot(s);
       }
-      drawAll();
     }, 1000 / STEP_HZ);
-  } else {
-    drawAll();  // clear any stale paths from a prior step-tick mode immediately
+  }
+
+  if (breathSpots.length > 0) {
+    drawAllSpots();
     const origin = performance.now();
     let lastFrame = origin;
     const loop = (now) => {
@@ -399,9 +395,11 @@ function startMotion() {
       const t = (now - origin) / 1000;
       const mid = (BREATH_AMP_MIN + BREATH_AMP_MAX) / 2;
       const swing = (BREATH_AMP_MAX - BREATH_AMP_MIN) / 2;
-      wave.mean.amp = mid + swing * Math.sin((2 * Math.PI * t) / BREATH_PERIOD_S);
-      wave.mean.phase += (2 * Math.PI * dt) / BREATH_DRIFT_PERIOD_S;
-      drawAll();
+      for (const s of breathSpots) {
+        s.wave.mean.amp = mid + swing * Math.sin((2 * Math.PI * t) / BREATH_PERIOD_S);
+        s.wave.mean.phase += (2 * Math.PI * dt) / BREATH_DRIFT_PERIOD_S;
+        drawAllForSpot(s);
+      }
       breathRafId = requestAnimationFrame(loop);
     };
     breathRafId = requestAnimationFrame(loop);
@@ -413,34 +411,33 @@ function stopMotion() {
   if (breathRafId)    { cancelAnimationFrame(breathRafId); breathRafId = null; }
 }
 
-// Mean-vs-swell period gap below which the mean line is visual noise rather
-// than signal. Buoy ships Tp (dominant) and Tm (mean across freqs); when
-// they're within ~1.5s the two sines render as near-identical shapes and
-// the white line just thickens the cyan one. Above the threshold the gap
-// reads as actual swell organisation (clean vs confused), and the label
-// surfaces "mean" so the rare signal explains itself.
-const MEAN_DIVERGENCE_THRESHOLD_S = 1.5;
+function drawAllSpots() {
+  for (const s of spots) drawAllForSpot(s);
+}
 
-function drawAll() {
-  drawLayer(els.swell, wave.swell);
+function drawAllForSpot(s) {
+  const els = s.els;
+  if (!els.swell || !els.mean || !els.chop) return;
 
-  const meanCollapsed = wave.mean.period_s != null
-    && wave.swell.period_s != null
-    && Math.abs(wave.mean.period_s - wave.swell.period_s) < MEAN_DIVERGENCE_THRESHOLD_S;
+  drawLayer(els.swell, s.wave.swell);
+
+  const meanCollapsed = s.wave.mean.period_s != null
+    && s.wave.swell.period_s != null
+    && Math.abs(s.wave.mean.period_s - s.wave.swell.period_s) < MEAN_DIVERGENCE_THRESHOLD_S;
   if (meanCollapsed) {
     els.mean.setAttribute('d', '');
   } else {
-    drawLayer(els.mean, wave.mean);
+    drawLayer(els.mean, s.wave.mean);
   }
   if (els.meanLabel) {
-    if (meanCollapsed || wave.mean.amp <= 0) {
+    if (meanCollapsed || s.wave.mean.amp <= 0) {
       els.meanLabel.setAttribute('hidden', '');
     } else {
       els.meanLabel.removeAttribute('hidden');
     }
   }
 
-  drawLayer(els.chop, wave.chop);
+  drawLayer(els.chop, s.wave.chop);
 }
 
 function drawLayer(pathEl, layer) {
@@ -462,18 +459,7 @@ function drawLayer(pathEl, layer) {
 }
 
 // === 5-day outlook ===
-//
-// Renders the marine forecast as up to 5 daily summary cards into `gridEl`.
-// Days are bucketed by the *user's local* day boundary (so "Sun" means
-// "Sunday in your timezone" — most of UTC Sunday plus a few hours of
-// UTC Monday for US timezones). Past hours (forecast.at_utc < now) are
-// dropped so the first card is always "from this hour onward."
-//
-// Per-day stats:
-//   wave    — min..max wave_height_m converted to ft
-//   period  — median wave_period_s rounded to seconds
-//   swell   — circular-mean wave_direction_deg as a cardinal (handles
-//             the 0/360 wrap-around correctly)
+
 function renderOutlook(gridEl, forecastHours, tide, scoreForecast) {
   if (!gridEl) return;
   gridEl.replaceChildren();
@@ -488,9 +474,6 @@ function renderOutlook(gridEl, forecastHours, tide, scoreForecast) {
   }
 
   const ridableByDay = ridableHoursByLocalDay(scoreForecast);
-  // Days 4-5 (zero-indexed 3 and 4) are flagged low-confidence so the
-  // renderer can fade them and label them "less certain" — Open-Meteo's
-  // GFS-Wave skill drops materially past ~72h.
   days.forEach((day, idx) => {
     const key = localDayKey(day.date);
     const lowConfidence = idx >= 3;
@@ -500,23 +483,16 @@ function renderOutlook(gridEl, forecastHours, tide, scoreForecast) {
   });
 }
 
-// Score threshold above which an hour counts as "rideable" — matches the
-// "fun-sized" verdict band in spots.gleam (>=5 of 10).
-const RIDEABLE_SCORE_THRESHOLD = 5;
-
-// Roll up the per-hour score forecast into a per-day count of rideable
-// hours. Truer than peak-of-hourly at multi-day horizons: one anomalous
-// noisy hour can spike a peak but won't fake a half-day of conditions.
-// Future-only — past hours don't help the user decide later this week.
+const RIDEABLE_SCORE_THRESHOLD_FN = () => RIDEABLE_SCORE_THRESHOLD;
 function ridableHoursByLocalDay(scoreForecast) {
   const now = Date.now();
   const counts = new Map();
   for (const entry of scoreForecast) {
     const d = new Date(entry.at_utc);
     if (isNaN(d.getTime()) || d.getTime() < now) continue;
-    const s = entry.score;
-    if (!s || s.overall == null) continue;
-    if (s.overall < RIDEABLE_SCORE_THRESHOLD) continue;
+    const score = entry.score;
+    if (!score || score.overall == null) continue;
+    if (score.overall < RIDEABLE_SCORE_THRESHOLD_FN()) continue;
     const key = localDayKey(d);
     counts.set(key, (counts.get(key) ?? 0) + 1);
   }
@@ -553,25 +529,15 @@ function groupForecastByLocalDay(forecastHours, maxDays) {
 
 function dayStats(hours) {
   const heights = hours.map(h => h.wave_height_m).filter(v => v != null);
-  const periods = hours.map(h => h.wave_period_s).filter(v => v != null);
   const dirs    = hours.map(h => h.wave_direction_deg).filter(v => v != null);
 
   return {
-    minHeight:    heights.length ? Math.min(...heights) : null,
-    maxHeight:    heights.length ? Math.max(...heights) : null,
-    medianPeriod: periods.length ? medianOf(periods) : null,
-    dominantDir:  dirs.length    ? circularMean(dirs) : null,
+    minHeight:   heights.length ? Math.min(...heights) : null,
+    maxHeight:   heights.length ? Math.max(...heights) : null,
+    dominantDir: dirs.length ? circularMean(dirs) : null,
   };
 }
 
-function medianOf(xs) {
-  const sorted = [...xs].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
-}
-
-// Mean of compass bearings using vector summation. Plain arithmetic mean
-// fails at the 0/360 wrap-around (mean of [355, 5] would be 180, not 0).
 function circularMean(degrees) {
   const sumSin = degrees.reduce((s, deg) => s + Math.sin(deg * Math.PI / 180), 0);
   const sumCos = degrees.reduce((s, deg) => s + Math.cos(deg * Math.PI / 180), 0);
@@ -585,7 +551,7 @@ function buildDayCard(day, tide, ridableHours, lowConfidence) {
   card.className = 'outlook-day';
   if (lowConfidence) card.setAttribute('data-confidence', 'low');
 
-  const name = document.createElement('h3');
+  const name = document.createElement('h4');
   name.className = 'outlook-day-name';
   name.textContent = day.label;
   card.appendChild(name);
@@ -615,9 +581,6 @@ function buildDayCard(day, tide, ridableHours, lowConfidence) {
   return card;
 }
 
-// Build the tide row as a vertical stack of color-coded H/L events.
-// Each event renders as "<colored kind> HH:MM<a|p>" — easier to scan
-// than the previous joined " · " string when there are 3-4 events.
 function buildTideRow(day, tide) {
   const row = document.createElement('div');
   row.className = 'outlook-row';
@@ -659,7 +622,7 @@ function buildTideRow(day, tide) {
   return row;
 }
 
-function outlookRow(label, value, valueClass = 'outlook-value') {
+function outlookRow(label, value) {
   const row = document.createElement('div');
   row.className = 'outlook-row';
 
@@ -669,23 +632,11 @@ function outlookRow(label, value, valueClass = 'outlook-value') {
   row.appendChild(l);
 
   const v = document.createElement('span');
-  v.className = valueClass;
+  v.className = 'outlook-value';
   v.textContent = value;
   row.appendChild(v);
 
   return row;
-}
-
-// Pull tide hi/lo events that fall on the same local day as `day.date`.
-// Returns a compact string like "H 9:14a · L 12:05p · H 6:35p" — or "—".
-function formatDayTide(day, tide) {
-  if (!tide || !Array.isArray(tide.upcoming) || tide.upcoming.length === 0) return '—';
-  const events = tide.upcoming.filter(e => sameLocalDay(new Date(e.at_utc), day.date));
-  if (events.length === 0) return '—';
-  return events.map(e => {
-    const sym = e.kind === 'high' ? 'H' : 'L';
-    return `${sym} ${localTime(e.at_utc)}`;
-  }).join(' · ');
 }
 
 function sameLocalDay(a, b) {
@@ -694,7 +645,6 @@ function sameLocalDay(a, b) {
       && a.getDate() === b.getDate();
 }
 
-// "2026-05-04T02:40:00Z" → "22:40" in the user's local time (24-hour).
 function localTime(iso) {
   const d = new Date(iso);
   if (isNaN(d.getTime())) return '';
@@ -711,23 +661,14 @@ function formatWaveRange(day) {
   return `${minFt.toFixed(1)}–${maxFt.toFixed(1)} ft`;
 }
 
-function formatOutlookPeriod(day) {
-  return day.medianPeriod != null ? `${day.medianPeriod.toFixed(0)} s` : '—';
-}
-
 function formatOutlookSwell(day) {
   return day.dominantDir != null ? cardinal(day.dominantDir) : '—';
 }
 
-// === Recommendation engine surface ===
-//
-// The Gleam scoring orchestrator emits a `score` block with `now` (current
-// Conditions score) and `best_overall` (highest-composite rideable window
-// in the 5-day horizon). These render into the Now header and the dedicated
-// "next window" section. Empty windows is a first-class state — for PAG
-// it is the honest answer most days.
+// === Now-card score + next window (per spot) ===
 
-function renderNowScore(now) {
+function renderNowScore(els, now) {
+  if (!els.nowScore) return;
   if (!now) {
     els.nowScore.setAttribute('hidden', '');
     return;
@@ -742,28 +683,25 @@ function renderNowScore(now) {
   }
 }
 
-function renderNextWindow(w) {
+function renderNextWindow(els, w) {
+  if (!els.windowWhen) return;
   if (!w) {
     els.windowWhen.textContent = 'nothing in the next 5 days';
     els.windowWhen.setAttribute('data-empty', '');
-    els.windowMeta.textContent = '';
+    if (els.windowMeta) els.windowMeta.textContent = '';
     return;
   }
   els.windowWhen.removeAttribute('data-empty');
   els.windowWhen.textContent = formatWindowRange(w.starts_at, w.ends_at);
-  els.windowMeta.textContent = formatWindowMeta(w);
+  if (els.windowMeta) els.windowMeta.textContent = formatWindowMeta(w);
 }
 
 function formatWindowMeta(w) {
   const peak = `peak ${w.peak_score.toFixed(1)}/10`;
-  // horizon_hours_out=0 means the window has already started. Distinguish
-  // "in progress" from "just about to start".
   const endsTs = new Date(w.ends_at).getTime();
   const horizon =
     w.horizon_hours_out === 0
-      ? endsTs > Date.now()
-        ? 'happening now'
-        : 'just ended'
+      ? endsTs > Date.now() ? 'happening now' : 'just ended'
       : `${w.horizon_hours_out}h out`;
   const conf = `${w.confidence} confidence`;
   return `${peak} · ${horizon} · ${conf}`;
@@ -777,7 +715,6 @@ function formatWindowRange(startIso, endIso) {
   const bDay = b.toLocaleDateString(undefined, { weekday: 'short' });
   const aTime = formatLocalShortTime(a);
   const bTime = formatLocalShortTime(b);
-  // Same local day → "Sun 7am-11am"; spans midnight → "Sun 10pm – Mon 6am".
   return a.getDate() === b.getDate() && a.getMonth() === b.getMonth()
     ? `${aDay} ${aTime}-${bTime}`
     : `${aDay} ${aTime} – ${bDay} ${bTime}`;
@@ -789,9 +726,28 @@ function formatLocalShortTime(d) {
   return `${hh}:${mm}`;
 }
 
+// === Pressure trend ===
+
+function pressureTrendArrow(windBlock) {
+  const now = windBlock?.pressure_hpa;
+  if (now == null || !Array.isArray(windBlock?.forecast)) return '';
+  const target = Date.now() + PRESSURE_TREND_HOURS * 3600 * 1000;
+  const future = windBlock.forecast.find(h => {
+    const t = new Date(h.at_utc).getTime();
+    return !isNaN(t) && t >= target;
+  });
+  if (future?.pressure_hpa == null) return '';
+  const delta = future.pressure_hpa - now;
+  if (delta >  PRESSURE_TREND_THRESHOLD_HPA) return '↑';
+  if (delta < -PRESSURE_TREND_THRESHOLD_HPA) return '↓';
+  return '→';
+}
+
+// === Bootstrap ===
+
+initSpots();
 load();
 startMotion();
 
-// Re-evaluate motion mode if the OS reduced-motion preference toggles live.
 window.matchMedia('(prefers-reduced-motion: reduce)')
   .addEventListener('change', startMotion);

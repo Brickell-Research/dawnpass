@@ -35,228 +35,403 @@
       </ul>
     </aside>
 
-    <section class="now" aria-label="current conditions">
-      <header class="now-header">
-        <h2 class="now-title">now</h2>
-        <span class="now-score" id="now-score" hidden>
-          <span class="now-score-value" id="now-score-value">—</span>
-          <span class="now-score-verdict" id="now-score-verdict"></span>
-        </span>
-        <span class="now-meta">
-          <span class="stale-pill" id="stale-pill" hidden>stale</span>
-        </span>
-      </header>
+    <article class="spot" data-spot="pag">
+      <h2 class="spot-name">Pass-a-Grille</h2>
 
-      <div class="now-body">
-        <div class="now-data">
-          <div class="now-grid">
-            <div class="metric">
-              <span class="metric-label">wave</span>
-              <span class="metric-value" id="m-wave">—</span>
-              <span class="metric-tag" id="m-wave-tag"></span>
+      <section class="now" aria-label="current conditions">
+        <header class="now-header">
+          <h3 class="now-title">now</h3>
+          <span class="now-score" hidden>
+            <span class="now-score-value">—</span>
+            <span class="now-score-verdict"></span>
+          </span>
+          <span class="now-meta">
+            <span class="stale-pill" hidden>stale</span>
+          </span>
+        </header>
+
+        <div class="now-body">
+          <div class="now-data">
+            <div class="now-grid">
+              <div class="metric">
+                <span class="metric-label">wave</span>
+                <span class="metric-value m-wave">—</span>
+                <span class="metric-tag m-wave-tag"></span>
+              </div>
+              <div class="metric">
+                <span class="metric-label">period</span>
+                <span class="metric-value m-period">—</span>
+              </div>
+              <div class="metric">
+                <span class="metric-label">wind · buoy</span>
+                <span class="metric-value m-wind">—</span>
+                <span class="metric-tag m-wind-tag"></span>
+              </div>
             </div>
-            <div class="metric">
-              <span class="metric-label">period</span>
-              <span class="metric-value" id="m-period">—</span>
+
+            <div class="tide-row">
+              <span class="tide-label">tide</span>
+              <span class="tide-value m-tide">—</span>
             </div>
-            <div class="metric">
-              <span class="metric-label">wind · buoy</span>
-              <span class="metric-value" id="m-wind">—</span>
-              <span class="metric-tag" id="m-wind-tag"></span>
+
+            <div class="wave-frame">
+              <span class="wave-mean-label" hidden>mean</span>
+              <svg class="now-wave" viewBox="0 0 800 100" preserveAspectRatio="none" aria-hidden="true">
+                <path class="wave-chop"  d="{{WAVE_CHOP_D}}"  fill="none" stroke-linecap="round"/>
+                <path class="wave-mean"  d="{{WAVE_MEAN_D}}"  fill="none" stroke-linecap="round"/>
+                <path class="wave-swell" d="{{WAVE_SWELL_D}}" fill="none" stroke-linecap="round"/>
+              </svg>
             </div>
+
+            <p class="now-updated">awaiting data…</p>
           </div>
 
-          <div class="tide-row">
-            <span class="tide-label">tide</span>
-            <span class="tide-value" id="m-tide">—</span>
-          </div>
+          <div class="now-map">
+            <svg class="now-map-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 280" role="img" aria-label="Notebook surf chart of Pass-a-Grille's south tip with longboard and breaching dolphin">
 
-          <div class="wave-frame">
-            <span class="wave-mean-label" id="wave-mean-label" hidden>mean</span>
-            <svg class="now-wave" viewBox="0 0 800 100" preserveAspectRatio="none" aria-hidden="true">
-              <path id="wave-chop"  d="{{WAVE_CHOP_D}}"  fill="none" stroke-linecap="round"/>
-              <path id="wave-mean"  d="{{WAVE_MEAN_D}}"  fill="none" stroke-linecap="round"/>
-              <path id="wave-swell" d="{{WAVE_SWELL_D}}" fill="none" stroke-linecap="round"/>
+              <!-- notebook page chrome -->
+              <g stroke="#00CED1" stroke-width="0.4" opacity="0.13">
+                <line x1="0" y1="50"  x2="200" y2="50"/>
+                <line x1="0" y1="75"  x2="200" y2="75"/>
+                <line x1="0" y1="100" x2="200" y2="100"/>
+                <line x1="0" y1="125" x2="200" y2="125"/>
+                <line x1="0" y1="150" x2="200" y2="150"/>
+                <line x1="0" y1="175" x2="200" y2="175"/>
+                <line x1="0" y1="200" x2="200" y2="200"/>
+                <line x1="0" y1="225" x2="200" y2="225"/>
+                <line x1="0" y1="250" x2="200" y2="250"/>
+              </g>
+              <line x1="20" y1="0" x2="20" y2="280" stroke="#FF1493" stroke-width="0.6" opacity="0.55"/>
+
+              <!-- header -->
+              <text x="29" y="24" font-family="JetBrains Mono, ui-monospace, monospace" font-size="13" fill="#FF1493" font-weight="600" letter-spacing="0.04em">Pass-a-Grille</text>
+              <text x="29" y="36" font-family="JetBrains Mono, ui-monospace, monospace" font-size="8" fill="#7d8793" font-style="italic" letter-spacing="0.04em">south tip · top-down</text>
+
+              <!-- subtle Gulf wash -->
+              <rect x="20" y="50" width="78" height="212" fill="#00CED1" opacity="0.05"/>
+
+              <!-- sand mass: PAG south tip -->
+              <path d="M 200 50 L 200 268 L 110 268 Q 90 258 92 235 Q 100 205 108 175 Q 116 140 116 105 Q 116 75 124 56 Q 130 50 142 50 Z" fill="#e8c89a"/>
+
+              <!-- sand stipple -->
+              <g fill="#c9a874">
+                <circle cx="140" cy="60"  r="0.7"/>
+                <circle cx="158" cy="80"  r="0.7"/>
+                <circle cx="172" cy="98"  r="0.7"/>
+                <circle cx="135" cy="115" r="0.7"/>
+                <circle cx="155" cy="135" r="0.7"/>
+                <circle cx="178" cy="155" r="0.7"/>
+                <circle cx="130" cy="170" r="0.7"/>
+                <circle cx="160" cy="190" r="0.7"/>
+                <circle cx="148" cy="225" r="0.7"/>
+                <circle cx="168" cy="245" r="0.7"/>
+                <circle cx="120" cy="245" r="0.7"/>
+              </g>
+
+              <!-- bathymetric contours -->
+              <g stroke="#00CED1" stroke-width="0.5" stroke-dasharray="3 3" fill="none" opacity="0.4">
+                <path d="M 30 65  Q 55 100 75 145 Q 88 185 78 240"/>
+                <path d="M 38 75  Q 62 110 80 152 Q 92 190 84 244"/>
+                <path d="M 52 95  Q 72 125 88 162 Q 98 195 92 246"/>
+              </g>
+
+              <!-- arrowhead markers + water-area clip — IDs suffixed per
+                   spot since they're referenced via url(#...) and IDs
+                   must be unique across the document. -->
+              <defs>
+                <marker id="map-swarrow-pag" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+                  <path d="M 0 0 L 8 4 L 0 8 z" fill="#00CED1" opacity="0.7"/>
+                </marker>
+                <marker id="map-windarrow-pag" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+                  <path d="M 0 0 L 8 4 L 0 8 z" fill="#FF1493" opacity="0.85"/>
+                </marker>
+                <clipPath id="map-water-clip-pag">
+                  <rect x="22" y="50" width="78" height="218"/>
+                </clipPath>
+              </defs>
+
+              <!-- swell arrows (cyan) — JS finds via class -->
+              <g clip-path="url(#map-water-clip-pag)">
+                <g class="map-swell-arrows" transform="rotate(0 42 195)" stroke="#00CED1" stroke-width="1.1" fill="none" stroke-linecap="round" opacity="0.7">
+                  <line x1="34" y1="225" x2="52" y2="213" marker-end="url(#map-swarrow-pag)"/>
+                  <line x1="32" y1="200" x2="50" y2="188" marker-end="url(#map-swarrow-pag)"/>
+                  <line x1="34" y1="175" x2="52" y2="163" marker-end="url(#map-swarrow-pag)"/>
+                </g>
+              </g>
+              <text class="map-swell" x="29" y="240" font-family="JetBrains Mono, ui-monospace, monospace" font-size="6" fill="#00CED1" font-style="italic" opacity="0.85" letter-spacing="0.06em">SW</text>
+
+              <!-- wind arrow (pink) — JS finds via class -->
+              <g class="map-wind-arrow" transform="rotate(0 170 100)" stroke="#FF1493" stroke-width="1.3" fill="none" stroke-linecap="round" opacity="0.85">
+                <line x1="160" y1="100" x2="180" y2="100" marker-end="url(#map-windarrow-pag)"/>
+              </g>
+              <text class="map-wind" x="170" y="113" text-anchor="middle" font-family="JetBrains Mono, ui-monospace, monospace" font-size="6" fill="#FF1493" font-style="italic" opacity="0.85" letter-spacing="0.06em">wind</text>
+
+              <!-- air-temp glyph: sun in top-left corner above the contours -->
+              <g transform="translate(30, 60)" aria-label="air temperature">
+                <circle cx="0" cy="0" r="3.5" fill="#ffa860"/>
+                <g stroke="#ffa860" stroke-width="0.8" stroke-linecap="round" opacity="0.85">
+                  <line x1="-6" y1="0" x2="-4.5" y2="0"/>
+                  <line x1="6" y1="0" x2="4.5" y2="0"/>
+                  <line x1="0" y1="-6" x2="0" y2="-4.5"/>
+                  <line x1="0" y1="6" x2="0" y2="4.5"/>
+                  <line x1="-4.2" y1="-4.2" x2="-3.2" y2="-3.2"/>
+                  <line x1="4.2" y1="-4.2" x2="3.2" y2="-3.2"/>
+                  <line x1="-4.2" y1="4.2" x2="-3.2" y2="3.2"/>
+                  <line x1="4.2" y1="4.2" x2="3.2" y2="3.2"/>
+                </g>
+              </g>
+              <text class="map-air-temp" x="42" y="63" font-family="JetBrains Mono, ui-monospace, monospace" font-size="7" fill="#ffa860" font-style="italic" opacity="0.9" letter-spacing="0.04em">—</text>
+
+              <!-- pressure glyph: small barometer dial. -->
+              <g transform="translate(30, 100)" aria-label="atmospheric pressure">
+                <circle cx="0" cy="0" r="3.5" fill="none" stroke="#9a98c0" stroke-width="0.8"/>
+                <line x1="0" y1="0" x2="2.2" y2="-1.6" stroke="#9a98c0" stroke-width="1" stroke-linecap="round"/>
+                <circle cx="0" cy="0" r="0.5" fill="#9a98c0"/>
+              </g>
+              <text class="map-pressure" x="42" y="103" font-family="JetBrains Mono, ui-monospace, monospace" font-size="7" fill="#9a98c0" font-style="italic" opacity="0.9" letter-spacing="0.04em">—</text>
+
+              <!-- water-temp glyph: thermometer in mid-left Gulf -->
+              <g transform="translate(32, 130)" aria-label="water temperature">
+                <rect x="-1" y="-6" width="2" height="9" rx="1" fill="none" stroke="#4ad8ed" stroke-width="0.8"/>
+                <circle cx="0" cy="4" r="2.2" fill="#4ad8ed"/>
+                <line x1="0" y1="-4" x2="0" y2="2" stroke="#4ad8ed" stroke-width="1.4" stroke-linecap="round"/>
+              </g>
+              <text class="map-water-temp" x="42" y="133" font-family="JetBrains Mono, ui-monospace, monospace" font-size="7" fill="#4ad8ed" font-style="italic" opacity="0.9" letter-spacing="0.04em">—</text>
+
+              <!-- dolphin breaching -->
+              <g transform="translate(58, 130)" aria-label="dolphin in the gulf">
+                <path d="M -8 2 Q -4 -4 0 -3 Q 4 -3 8 2 L 7 3 Q 4 0 0 0 Q -4 0 -7 3 Z" fill="#1a1a2e"/>
+                <path d="M 0 -3 L 1 -5 L 3 -3 Z" fill="#1a1a2e"/>
+                <path d="M 8 2 L 10 0 L 10 3 Z" fill="#1a1a2e"/>
+              </g>
+
+              <!-- compass rose -->
+              <g transform="translate(180, 60)">
+                <circle cx="0" cy="0" r="9" fill="none" stroke="#7d8793" stroke-width="0.5" opacity="0.75"/>
+                <line x1="0" y1="-9" x2="0" y2="9" stroke="#7d8793" stroke-width="0.6" opacity="0.75"/>
+                <line x1="-9" y1="0" x2="9" y2="0" stroke="#7d8793" stroke-width="0.6" opacity="0.75"/>
+                <path d="M 0 -9 l -2 4 l 2 -1.5 l 2 1.5 z" fill="#FF1493"/>
+                <text x="0" y="-12" text-anchor="middle" font-family="JetBrains Mono, ui-monospace, monospace" font-size="5" fill="#FF1493" font-weight="600">N</text>
+              </g>
+
+              <!-- you-paddle-out dot -->
+              <circle cx="78" cy="200" r="3.5" fill="#FF1493"/>
+              <circle cx="78" cy="200" r="6.5" fill="none" stroke="#FF1493" stroke-width="0.6" opacity="0.5"/>
+
+              <!-- footprints -->
+              <g fill="#FF1493" opacity="0.55">
+                <ellipse cx="156" cy="105" rx="1.4" ry="0.7" transform="rotate(-20 156 105)"/>
+                <ellipse cx="151" cy="115" rx="1.4" ry="0.7" transform="rotate(-25 151 115)"/>
+                <ellipse cx="153" cy="128" rx="1.4" ry="0.7" transform="rotate(-20 153 128)"/>
+                <ellipse cx="148" cy="140" rx="1.4" ry="0.7" transform="rotate(-25 148 140)"/>
+                <ellipse cx="150" cy="155" rx="1.4" ry="0.7" transform="rotate(-20 150 155)"/>
+                <ellipse cx="146" cy="170" rx="1.4" ry="0.7" transform="rotate(-25 146 170)"/>
+              </g>
+
+              <!-- longboard -->
+              <g transform="translate(140, 200) rotate(-25)">
+                <path d="M -8 -22 Q -10 -10 -9 0 Q -10 10 -8 18 Q -4 23 0 23 Q 4 23 8 18 Q 10 10 9 0 Q 10 -10 8 -22 Q 4 -25 0 -25 Q -4 -25 -8 -22 Z" fill="#FF1493" stroke="#3a2010" stroke-width="0.9"/>
+                <line x1="0" y1="-23" x2="0" y2="20" stroke="#000" stroke-width="0.4" opacity="0.55"/>
+                <path d="M -2 23 l 0 5 l 4 -5 z" fill="#3a2010"/>
+                <circle cx="-3" cy="-5" r="0.6" fill="#fff" opacity="0.7"/>
+                <circle cx="3"  cy="-5" r="0.6" fill="#fff" opacity="0.7"/>
+                <circle cx="-3" cy="3"  r="0.6" fill="#fff" opacity="0.7"/>
+                <circle cx="3"  cy="3"  r="0.6" fill="#fff" opacity="0.7"/>
+              </g>
+
             </svg>
           </div>
-
-          <p class="now-updated" id="now-updated">awaiting data…</p>
         </div>
+      </section>
 
-        <div class="now-map">
-          <svg class="now-map-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 280" role="img" aria-label="Notebook surf chart of Pass-a-Grille's south tip with longboard and breaching dolphin">
-
-            <!-- notebook page chrome -->
-            <g stroke="#00CED1" stroke-width="0.4" opacity="0.13">
-              <line x1="0" y1="50"  x2="200" y2="50"/>
-              <line x1="0" y1="75"  x2="200" y2="75"/>
-              <line x1="0" y1="100" x2="200" y2="100"/>
-              <line x1="0" y1="125" x2="200" y2="125"/>
-              <line x1="0" y1="150" x2="200" y2="150"/>
-              <line x1="0" y1="175" x2="200" y2="175"/>
-              <line x1="0" y1="200" x2="200" y2="200"/>
-              <line x1="0" y1="225" x2="200" y2="225"/>
-              <line x1="0" y1="250" x2="200" y2="250"/>
-            </g>
-            <line x1="20" y1="0" x2="20" y2="280" stroke="#FF1493" stroke-width="0.6" opacity="0.55"/>
-
-            <!-- header -->
-            <text x="29" y="24" font-family="JetBrains Mono, ui-monospace, monospace" font-size="13" fill="#FF1493" font-weight="600" letter-spacing="0.04em">Pass-a-Grille</text>
-            <text x="29" y="36" font-family="JetBrains Mono, ui-monospace, monospace" font-size="8" fill="#7d8793" font-style="italic" letter-spacing="0.04em">south tip · top-down</text>
-
-            <!-- subtle Gulf wash -->
-            <rect x="20" y="50" width="78" height="212" fill="#00CED1" opacity="0.05"/>
-
-            <!-- sand mass: PAG south tip -->
-            <path d="M 200 50 L 200 268 L 110 268 Q 90 258 92 235 Q 100 205 108 175 Q 116 140 116 105 Q 116 75 124 56 Q 130 50 142 50 Z" fill="#e8c89a"/>
-
-            <!-- sand stipple -->
-            <g fill="#c9a874">
-              <circle cx="140" cy="60"  r="0.7"/>
-              <circle cx="158" cy="80"  r="0.7"/>
-              <circle cx="172" cy="98"  r="0.7"/>
-              <circle cx="135" cy="115" r="0.7"/>
-              <circle cx="155" cy="135" r="0.7"/>
-              <circle cx="178" cy="155" r="0.7"/>
-              <circle cx="130" cy="170" r="0.7"/>
-              <circle cx="160" cy="190" r="0.7"/>
-              <circle cx="148" cy="225" r="0.7"/>
-              <circle cx="168" cy="245" r="0.7"/>
-              <circle cx="120" cy="245" r="0.7"/>
-            </g>
-
-            <!-- bathymetric contours -->
-            <g stroke="#00CED1" stroke-width="0.5" stroke-dasharray="3 3" fill="none" opacity="0.4">
-              <path d="M 30 65  Q 55 100 75 145 Q 88 185 78 240"/>
-              <path d="M 38 75  Q 62 110 80 152 Q 92 190 84 244"/>
-              <path d="M 52 95  Q 72 125 88 162 Q 98 195 92 246"/>
-            </g>
-
-            <!-- arrowhead markers + water-area clip -->
-            <defs>
-              <marker id="map-swarrow" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="6" markerHeight="6" orient="auto">
-                <path d="M 0 0 L 8 4 L 0 8 z" fill="#00CED1" opacity="0.7"/>
-              </marker>
-              <marker id="map-windarrow" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="6" markerHeight="6" orient="auto">
-                <path d="M 0 0 L 8 4 L 0 8 z" fill="#FF1493" opacity="0.85"/>
-              </marker>
-              <!-- Clip the rotated swell arrows so they never cross the
-                   page-margin (x<22) when rotation swings them toward W/SW. -->
-              <clipPath id="map-water-clip">
-                <rect x="22" y="50" width="78" height="218"/>
-              </clipPath>
-            </defs>
-
-            <!-- swell arrows (cyan) — rotates with real swell direction.
-                 Outer group does the clipping in the SVG's user space; inner
-                 group does the rotation. Splitting them keeps the clip rect
-                 stable regardless of rotation. -->
-            <g clip-path="url(#map-water-clip)">
-              <g id="map-swell-arrows" transform="rotate(0 42 195)" stroke="#00CED1" stroke-width="1.1" fill="none" stroke-linecap="round" opacity="0.7">
-                <line x1="34" y1="225" x2="52" y2="213" marker-end="url(#map-swarrow)"/>
-                <line x1="32" y1="200" x2="50" y2="188" marker-end="url(#map-swarrow)"/>
-                <line x1="34" y1="175" x2="52" y2="163" marker-end="url(#map-swarrow)"/>
-              </g>
-            </g>
-            <text id="map-swell" x="29" y="240" font-family="JetBrains Mono, ui-monospace, monospace" font-size="6" fill="#00CED1" font-style="italic" opacity="0.85" letter-spacing="0.06em">SW</text>
-
-            <!-- wind arrow (pink) — rotates with real wind direction -->
-            <g id="map-wind-arrow" transform="rotate(0 170 100)" stroke="#FF1493" stroke-width="1.3" fill="none" stroke-linecap="round" opacity="0.85">
-              <line x1="160" y1="100" x2="180" y2="100" marker-end="url(#map-windarrow)"/>
-            </g>
-            <text id="map-wind" x="170" y="113" text-anchor="middle" font-family="JetBrains Mono, ui-monospace, monospace" font-size="6" fill="#FF1493" font-style="italic" opacity="0.85" letter-spacing="0.06em">wind</text>
-
-            <!-- air-temp glyph: sun in top-left corner above the contours -->
-            <g transform="translate(30, 60)" aria-label="air temperature">
-              <circle cx="0" cy="0" r="3.5" fill="#ffa860"/>
-              <g stroke="#ffa860" stroke-width="0.8" stroke-linecap="round" opacity="0.85">
-                <line x1="-6" y1="0" x2="-4.5" y2="0"/>
-                <line x1="6" y1="0" x2="4.5" y2="0"/>
-                <line x1="0" y1="-6" x2="0" y2="-4.5"/>
-                <line x1="0" y1="6" x2="0" y2="4.5"/>
-                <line x1="-4.2" y1="-4.2" x2="-3.2" y2="-3.2"/>
-                <line x1="4.2" y1="-4.2" x2="3.2" y2="-3.2"/>
-                <line x1="-4.2" y1="4.2" x2="-3.2" y2="3.2"/>
-                <line x1="4.2" y1="4.2" x2="3.2" y2="3.2"/>
-              </g>
-            </g>
-            <text id="map-air-temp" x="42" y="63" font-family="JetBrains Mono, ui-monospace, monospace" font-size="7" fill="#ffa860" font-style="italic" opacity="0.9" letter-spacing="0.04em">—</text>
-
-            <!-- pressure glyph: small barometer dial between air and water temps.
-                 Trend arrow lives in the text label, not as a rotating needle. -->
-            <g transform="translate(30, 100)" aria-label="atmospheric pressure">
-              <circle cx="0" cy="0" r="3.5" fill="none" stroke="#9a98c0" stroke-width="0.8"/>
-              <line x1="0" y1="0" x2="2.2" y2="-1.6" stroke="#9a98c0" stroke-width="1" stroke-linecap="round"/>
-              <circle cx="0" cy="0" r="0.5" fill="#9a98c0"/>
-            </g>
-            <text id="map-pressure" x="42" y="103" font-family="JetBrains Mono, ui-monospace, monospace" font-size="7" fill="#9a98c0" font-style="italic" opacity="0.9" letter-spacing="0.04em">—</text>
-
-            <!-- water-temp glyph: thermometer in mid-left Gulf, far from wind arrow -->
-            <g transform="translate(32, 130)" aria-label="water temperature">
-              <rect x="-1" y="-6" width="2" height="9" rx="1" fill="none" stroke="#4ad8ed" stroke-width="0.8"/>
-              <circle cx="0" cy="4" r="2.2" fill="#4ad8ed"/>
-              <line x1="0" y1="-4" x2="0" y2="2" stroke="#4ad8ed" stroke-width="1.4" stroke-linecap="round"/>
-            </g>
-            <text id="map-water-temp" x="42" y="133" font-family="JetBrains Mono, ui-monospace, monospace" font-size="7" fill="#4ad8ed" font-style="italic" opacity="0.9" letter-spacing="0.04em">—</text>
-
-            <!-- dolphin breaching -->
-            <g transform="translate(58, 130)" aria-label="dolphin in the gulf">
-              <path d="M -8 2 Q -4 -4 0 -3 Q 4 -3 8 2 L 7 3 Q 4 0 0 0 Q -4 0 -7 3 Z" fill="#1a1a2e"/>
-              <path d="M 0 -3 L 1 -5 L 3 -3 Z" fill="#1a1a2e"/>
-              <path d="M 8 2 L 10 0 L 10 3 Z" fill="#1a1a2e"/>
-            </g>
-
-            <!-- compass rose -->
-            <g transform="translate(180, 60)">
-              <circle cx="0" cy="0" r="9" fill="none" stroke="#7d8793" stroke-width="0.5" opacity="0.75"/>
-              <line x1="0" y1="-9" x2="0" y2="9" stroke="#7d8793" stroke-width="0.6" opacity="0.75"/>
-              <line x1="-9" y1="0" x2="9" y2="0" stroke="#7d8793" stroke-width="0.6" opacity="0.75"/>
-              <path d="M 0 -9 l -2 4 l 2 -1.5 l 2 1.5 z" fill="#FF1493"/>
-              <text x="0" y="-12" text-anchor="middle" font-family="JetBrains Mono, ui-monospace, monospace" font-size="5" fill="#FF1493" font-weight="600">N</text>
-            </g>
-
-            <!-- you-paddle-out dot -->
-            <circle cx="78" cy="200" r="3.5" fill="#FF1493"/>
-            <circle cx="78" cy="200" r="6.5" fill="none" stroke="#FF1493" stroke-width="0.6" opacity="0.5"/>
-
-            <!-- footprints -->
-            <g fill="#FF1493" opacity="0.55">
-              <ellipse cx="156" cy="105" rx="1.4" ry="0.7" transform="rotate(-20 156 105)"/>
-              <ellipse cx="151" cy="115" rx="1.4" ry="0.7" transform="rotate(-25 151 115)"/>
-              <ellipse cx="153" cy="128" rx="1.4" ry="0.7" transform="rotate(-20 153 128)"/>
-              <ellipse cx="148" cy="140" rx="1.4" ry="0.7" transform="rotate(-25 148 140)"/>
-              <ellipse cx="150" cy="155" rx="1.4" ry="0.7" transform="rotate(-20 150 155)"/>
-              <ellipse cx="146" cy="170" rx="1.4" ry="0.7" transform="rotate(-25 146 170)"/>
-            </g>
-
-            <!-- longboard -->
-            <g transform="translate(140, 200) rotate(-25)">
-              <path d="M -8 -22 Q -10 -10 -9 0 Q -10 10 -8 18 Q -4 23 0 23 Q 4 23 8 18 Q 10 10 9 0 Q 10 -10 8 -22 Q 4 -25 0 -25 Q -4 -25 -8 -22 Z" fill="#FF1493" stroke="#3a2010" stroke-width="0.9"/>
-              <line x1="0" y1="-23" x2="0" y2="20" stroke="#000" stroke-width="0.4" opacity="0.55"/>
-              <path d="M -2 23 l 0 5 l 4 -5 z" fill="#3a2010"/>
-              <circle cx="-3" cy="-5" r="0.6" fill="#fff" opacity="0.7"/>
-              <circle cx="3"  cy="-5" r="0.6" fill="#fff" opacity="0.7"/>
-              <circle cx="-3" cy="3"  r="0.6" fill="#fff" opacity="0.7"/>
-              <circle cx="3"  cy="3"  r="0.6" fill="#fff" opacity="0.7"/>
-            </g>
-
-          </svg>
+      <section class="window" aria-label="next surf window">
+        <span class="window-label">next window</span>
+        <div class="window-body">
+          <span class="window-when">awaiting forecast…</span>
+          <span class="window-meta"></span>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <section class="window" aria-label="next surf window">
-      <span class="window-label">next window</span>
-      <div class="window-body">
-        <span class="window-when" id="window-when">awaiting forecast…</span>
-        <span class="window-meta" id="window-meta"></span>
-      </div>
-    </section>
+      <section class="outlook" aria-label="5-day outlook">
+        <h3 class="outlook-title">outlook</h3>
+        <div class="outlook-grid"></div>
+      </section>
+    </article>
 
-    <section class="outlook" aria-label="5-day outlook">
-      <h2 class="outlook-title">outlook</h2>
-      <div class="outlook-grid" id="outlook-grid"></div>
-    </section>
+    <article class="spot" data-spot="venice_south">
+      <h2 class="spot-name">Venice South Jetty</h2>
+
+      <section class="now" aria-label="current conditions">
+        <header class="now-header">
+          <h3 class="now-title">now</h3>
+          <span class="now-score" hidden>
+            <span class="now-score-value">—</span>
+            <span class="now-score-verdict"></span>
+          </span>
+          <span class="now-meta">
+            <span class="stale-pill" hidden>stale</span>
+          </span>
+        </header>
+
+        <div class="now-body">
+          <div class="now-data">
+            <div class="now-grid">
+              <div class="metric">
+                <span class="metric-label">wave</span>
+                <span class="metric-value m-wave">—</span>
+                <span class="metric-tag m-wave-tag"></span>
+              </div>
+              <div class="metric">
+                <span class="metric-label">period</span>
+                <span class="metric-value m-period">—</span>
+              </div>
+              <div class="metric">
+                <span class="metric-label">wind · buoy</span>
+                <span class="metric-value m-wind">—</span>
+                <span class="metric-tag m-wind-tag"></span>
+              </div>
+            </div>
+
+            <div class="tide-row">
+              <span class="tide-label">tide</span>
+              <span class="tide-value m-tide">—</span>
+            </div>
+
+            <div class="wave-frame">
+              <span class="wave-mean-label" hidden>mean</span>
+              <!-- Wave paths start empty; JS fills them from data.spots.venice_south.wave -->
+              <svg class="now-wave" viewBox="0 0 800 100" preserveAspectRatio="none" aria-hidden="true">
+                <path class="wave-chop"  d="" fill="none" stroke-linecap="round"/>
+                <path class="wave-mean"  d="" fill="none" stroke-linecap="round"/>
+                <path class="wave-swell" d="" fill="none" stroke-linecap="round"/>
+              </svg>
+            </div>
+
+            <p class="now-updated">awaiting data…</p>
+          </div>
+
+          <div class="now-map">
+            <!-- Placeholder map: same SVG dimensions as PAG so layout is
+                 symmetric. Notebook page chrome + glyphs + compass + swell/
+                 wind arrows still render against a dashed-bordered chart
+                 area. Hand-drawn jetty/sandbar geometry is queued as O1. -->
+            <svg class="now-map-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 280" role="img" aria-label="Placeholder notebook chart for Venice South Jetty">
+
+              <!-- notebook page chrome -->
+              <g stroke="#00CED1" stroke-width="0.4" opacity="0.13">
+                <line x1="0" y1="50"  x2="200" y2="50"/>
+                <line x1="0" y1="75"  x2="200" y2="75"/>
+                <line x1="0" y1="100" x2="200" y2="100"/>
+                <line x1="0" y1="125" x2="200" y2="125"/>
+                <line x1="0" y1="150" x2="200" y2="150"/>
+                <line x1="0" y1="175" x2="200" y2="175"/>
+                <line x1="0" y1="200" x2="200" y2="200"/>
+                <line x1="0" y1="225" x2="200" y2="225"/>
+                <line x1="0" y1="250" x2="200" y2="250"/>
+              </g>
+              <line x1="20" y1="0" x2="20" y2="280" stroke="#FF1493" stroke-width="0.6" opacity="0.55"/>
+
+              <!-- header -->
+              <text x="29" y="24" font-family="JetBrains Mono, ui-monospace, monospace" font-size="13" fill="#FF1493" font-weight="600" letter-spacing="0.04em">Venice S Jetty</text>
+              <text x="29" y="36" font-family="JetBrains Mono, ui-monospace, monospace" font-size="8" fill="#7d8793" font-style="italic" letter-spacing="0.04em">notebook chart pending</text>
+
+              <!-- subtle Gulf wash -->
+              <rect x="20" y="50" width="170" height="212" fill="#00CED1" opacity="0.05"/>
+
+              <!-- placeholder chart area: dashed bordered rectangle with a
+                   muted "coming soon" note in the centre. -->
+              <rect x="28" y="60" width="154" height="194" fill="none" stroke="#7d8793" stroke-width="0.5" stroke-dasharray="3 4" opacity="0.5"/>
+              <text x="105" y="160" text-anchor="middle" font-family="JetBrains Mono, ui-monospace, monospace" font-size="7" fill="#7d8793" font-style="italic" opacity="0.7" letter-spacing="0.04em">notebook chart coming soon</text>
+
+              <!-- arrowhead markers + water-area clip — Venice-suffixed IDs -->
+              <defs>
+                <marker id="map-swarrow-venice_south" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+                  <path d="M 0 0 L 8 4 L 0 8 z" fill="#00CED1" opacity="0.7"/>
+                </marker>
+                <marker id="map-windarrow-venice_south" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+                  <path d="M 0 0 L 8 4 L 0 8 z" fill="#FF1493" opacity="0.85"/>
+                </marker>
+                <clipPath id="map-water-clip-venice_south">
+                  <rect x="22" y="50" width="168" height="218"/>
+                </clipPath>
+              </defs>
+
+              <!-- swell arrows (cyan) — same JS hook, just inside Venice's
+                   placeholder chart so direction signal still renders. -->
+              <g clip-path="url(#map-water-clip-venice_south)">
+                <g class="map-swell-arrows" transform="rotate(0 60 215)" stroke="#00CED1" stroke-width="1.1" fill="none" stroke-linecap="round" opacity="0.5">
+                  <line x1="50" y1="240" x2="68" y2="228" marker-end="url(#map-swarrow-venice_south)"/>
+                  <line x1="48" y1="218" x2="66" y2="206" marker-end="url(#map-swarrow-venice_south)"/>
+                  <line x1="50" y1="195" x2="68" y2="183" marker-end="url(#map-swarrow-venice_south)"/>
+                </g>
+              </g>
+              <text class="map-swell" x="45" y="252" font-family="JetBrains Mono, ui-monospace, monospace" font-size="6" fill="#00CED1" font-style="italic" opacity="0.7" letter-spacing="0.06em">SW</text>
+
+              <!-- wind arrow (pink) — same JS hook -->
+              <g class="map-wind-arrow" transform="rotate(0 130 90)" stroke="#FF1493" stroke-width="1.3" fill="none" stroke-linecap="round" opacity="0.7">
+                <line x1="120" y1="90" x2="140" y2="90" marker-end="url(#map-windarrow-venice_south)"/>
+              </g>
+              <text class="map-wind" x="130" y="103" text-anchor="middle" font-family="JetBrains Mono, ui-monospace, monospace" font-size="6" fill="#FF1493" font-style="italic" opacity="0.7" letter-spacing="0.06em">wind</text>
+
+              <!-- air-temp glyph -->
+              <g transform="translate(30, 60)" aria-label="air temperature">
+                <circle cx="0" cy="0" r="3.5" fill="#ffa860"/>
+                <g stroke="#ffa860" stroke-width="0.8" stroke-linecap="round" opacity="0.85">
+                  <line x1="-6" y1="0" x2="-4.5" y2="0"/>
+                  <line x1="6" y1="0" x2="4.5" y2="0"/>
+                  <line x1="0" y1="-6" x2="0" y2="-4.5"/>
+                  <line x1="0" y1="6" x2="0" y2="4.5"/>
+                  <line x1="-4.2" y1="-4.2" x2="-3.2" y2="-3.2"/>
+                  <line x1="4.2" y1="-4.2" x2="3.2" y2="-3.2"/>
+                  <line x1="-4.2" y1="4.2" x2="-3.2" y2="3.2"/>
+                  <line x1="4.2" y1="4.2" x2="3.2" y2="3.2"/>
+                </g>
+              </g>
+              <text class="map-air-temp" x="42" y="63" font-family="JetBrains Mono, ui-monospace, monospace" font-size="7" fill="#ffa860" font-style="italic" opacity="0.9" letter-spacing="0.04em">—</text>
+
+              <!-- pressure glyph -->
+              <g transform="translate(30, 100)" aria-label="atmospheric pressure">
+                <circle cx="0" cy="0" r="3.5" fill="none" stroke="#9a98c0" stroke-width="0.8"/>
+                <line x1="0" y1="0" x2="2.2" y2="-1.6" stroke="#9a98c0" stroke-width="1" stroke-linecap="round"/>
+                <circle cx="0" cy="0" r="0.5" fill="#9a98c0"/>
+              </g>
+              <text class="map-pressure" x="42" y="103" font-family="JetBrains Mono, ui-monospace, monospace" font-size="7" fill="#9a98c0" font-style="italic" opacity="0.9" letter-spacing="0.04em">—</text>
+
+              <!-- water-temp glyph -->
+              <g transform="translate(32, 130)" aria-label="water temperature">
+                <rect x="-1" y="-6" width="2" height="9" rx="1" fill="none" stroke="#4ad8ed" stroke-width="0.8"/>
+                <circle cx="0" cy="4" r="2.2" fill="#4ad8ed"/>
+                <line x1="0" y1="-4" x2="0" y2="2" stroke="#4ad8ed" stroke-width="1.4" stroke-linecap="round"/>
+              </g>
+              <text class="map-water-temp" x="42" y="133" font-family="JetBrains Mono, ui-monospace, monospace" font-size="7" fill="#4ad8ed" font-style="italic" opacity="0.9" letter-spacing="0.04em">—</text>
+
+              <!-- compass rose -->
+              <g transform="translate(180, 60)">
+                <circle cx="0" cy="0" r="9" fill="none" stroke="#7d8793" stroke-width="0.5" opacity="0.75"/>
+                <line x1="0" y1="-9" x2="0" y2="9" stroke="#7d8793" stroke-width="0.6" opacity="0.75"/>
+                <line x1="-9" y1="0" x2="9" y2="0" stroke="#7d8793" stroke-width="0.6" opacity="0.75"/>
+                <path d="M 0 -9 l -2 4 l 2 -1.5 l 2 1.5 z" fill="#FF1493"/>
+                <text x="0" y="-12" text-anchor="middle" font-family="JetBrains Mono, ui-monospace, monospace" font-size="5" fill="#FF1493" font-weight="600">N</text>
+              </g>
+
+            </svg>
+          </div>
+        </div>
+      </section>
+
+      <section class="window" aria-label="next surf window">
+        <span class="window-label">next window</span>
+        <div class="window-body">
+          <span class="window-when">awaiting forecast…</span>
+          <span class="window-meta"></span>
+        </div>
+      </section>
+
+      <section class="outlook" aria-label="5-day outlook">
+        <h3 class="outlook-title">outlook</h3>
+        <div class="outlook-grid"></div>
+      </section>
+    </article>
 
   </main>
 

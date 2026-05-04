@@ -15,6 +15,27 @@ body {
 
 main { flex: 1; }
 
+/* Per-spot block. Stacks vertically on the page; PAG first, Venice below.
+   Subsequent spots get a hairline cyan rule above them so the boundary
+   reads as intentional rather than as two cards crashing into each other. */
+.spot {
+  display: block;
+}
+
+.spot + .spot {
+  margin-top: 1.6em;
+  padding-top: 1.6em;
+  border-top: 1px solid rgba(0, 206, 209, 0.18);
+}
+
+.spot-name {
+  font-family: 'JetBrains Mono', monospace;
+  color: #FF1493;
+  font-size: 1.4em;
+  margin-bottom: 0.6em;
+  letter-spacing: 0.02em;
+}
+
 h1 {
   font-family: 'JetBrains Mono', monospace;
   color: #FF1493;
@@ -227,9 +248,9 @@ h1 {
    align with the rest of the page (notes section + map): cyan = swell,
    pink = wind, muted white = mean (no concept slot of its own).
    Chop is wind-driven ripple, so it carries the pink wind color. */
-#wave-chop  { stroke: #FF1493;                   stroke-width: 0.75; }
-#wave-mean  { stroke: rgba(255, 255, 255, 0.4);  stroke-width: 1.5; }
-#wave-swell { stroke: #00CED1;                   stroke-width: 2.5; }
+.wave-chop  { stroke: #FF1493;                   stroke-width: 0.75; }
+.wave-mean  { stroke: rgba(255, 255, 255, 0.4);  stroke-width: 1.5; }
+.wave-swell { stroke: #00CED1;                   stroke-width: 2.5; }
 
 .now-updated {
   font-family: 'JetBrains Mono', monospace;
