@@ -1,0 +1,33 @@
+src/dawnpass/sources/open_meteo_marine.gleam
+  cecd0320e421cda8 31-33,75,102-106,129,138,197
+src/dawnpass/sources/noaa_tides.gleam
+  cecd0320e421cda8 70-89
+test/fixtures/open_meteo_marine_pag.json
+  cecd0320e421cda8 1
+test/birdie_snapshots/open_meteo_marine_pag.accepted
+  cecd0320e421cda8 5
+src/dawnpass.gleam
+  cecd0320e421cda8 17-24,41
+public/wave.js
+  cecd0320e421cda8 166-170,172
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "698714c4bc1d4886894ff41de79122398b4df73a",
+  "prompts": {
+    "cecd0320e421cda8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "348a5c78-5a64-4dfd-8c55-8d7e84bd5309",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "robertDurst",
+      "messages": [],
+      "total_additions": 49,
+      "total_deletions": 15,
+      "accepted_lines": 49,
+      "overriden_lines": 0
+    }
+  }
+}
