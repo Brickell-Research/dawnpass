@@ -72,7 +72,7 @@ const slack_threshold_minutes = 30
 pub fn fetch_tide(station: String) -> Result(TideReading, TideError) {
   use level <- result.try(fetch_water_level(station))
   // Use the level's timestamp as the begin_date for the hi/lo query so
-  // the 72h window is anchored to "now" (NOAA's date=today returns only
+  // the 5-day window is anchored to "now" (NOAA's date=today returns only
   // today's calendar-day events, which fails after the day's last event).
   use events <- result.try(fetch_hilo(
     station,
@@ -128,7 +128,7 @@ fn fetch_hilo(
     <> station
     <> "&begin_date="
     <> begin_date
-    <> "&range=72"
+    <> "&range=120"
     <> "&datum=MLLW"
     <> "&units=english"
     <> "&interval=hilo"

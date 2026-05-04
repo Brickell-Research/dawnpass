@@ -66,7 +66,7 @@ pub fn fetch_wind(
     <> "&current=wind_speed_10m,wind_direction_10m,temperature_2m"
     <> "&hourly=wind_speed_10m,wind_direction_10m,temperature_2m"
     <> "&wind_speed_unit=ms"
-    <> "&forecast_days=3"
+    <> "&forecast_days=5"
     <> "&timezone=GMT"
 
   use base_req <- result.try(

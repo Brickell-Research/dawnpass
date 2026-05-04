@@ -163,12 +163,12 @@ function render(data) {
         : '—';
   }
 
-  // 3-day outlook strip — wave + tide highs/lows + per-day peak score.
+  // 5-day outlook strip — wave + tide highs/lows + per-day rideable hours.
   renderOutlook(els.outlookGrid, marine?.forecast ?? [], tide, data.score?.forecast ?? []);
 
   // Recommendation engine output (computed by src/dawnpass/score/orchestrator.gleam):
   //   data.score.now            — current Conditions score (0-10 + verdict + sub-scores + vetoes)
-  //   data.score.windows        — hysteresis-detected rideable windows in the next 72h
+  //   data.score.windows        — hysteresis-detected rideable windows in the next 5 days
   //   data.score.best_overall   — highest-composite window across the horizon
   const scoreBlock = data.score ?? null;
   renderNowScore(scoreBlock?.now);
@@ -415,9 +415,9 @@ function drawLayer(pathEl, layer) {
   pathEl.setAttribute('d', d);
 }
 
-// === 3-day outlook ===
+// === 5-day outlook ===
 //
-// Renders the marine forecast as 3 daily summary cards into `gridEl`.
+// Renders the marine forecast as up to 5 daily summary cards into `gridEl`.
 // Days are bucketed by the *user's local* day boundary (so "Sun" means
 // "Sunday in your timezone" — most of UTC Sunday plus a few hours of
 // UTC Monday for US timezones). Past hours (forecast.at_utc < now) are
@@ -432,7 +432,7 @@ function renderOutlook(gridEl, forecastHours, tide, scoreForecast) {
   if (!gridEl) return;
   gridEl.replaceChildren();
 
-  const days = groupForecastByLocalDay(forecastHours, 3);
+  const days = groupForecastByLocalDay(forecastHours, 5);
   if (days.length === 0) {
     const empty = document.createElement('p');
     empty.className = 'outlook-empty';
@@ -441,30 +441,40 @@ function renderOutlook(gridEl, forecastHours, tide, scoreForecast) {
     return;
   }
 
-  const peakByDay = peakScoreByLocalDay(scoreForecast);
-  for (const day of days) {
+  const ridableByDay = ridableHoursByLocalDay(scoreForecast);
+  // Days 4-5 (zero-indexed 3 and 4) are flagged low-confidence so the
+  // renderer can fade them and label them "less certain" — Open-Meteo's
+  // GFS-Wave skill drops materially past ~72h.
+  days.forEach((day, idx) => {
     const key = localDayKey(day.date);
-    gridEl.appendChild(buildDayCard(day, tide, peakByDay.get(key) ?? null));
-  }
+    const lowConfidence = idx >= 3;
+    gridEl.appendChild(
+      buildDayCard(day, tide, ridableByDay.get(key) ?? 0, lowConfidence),
+    );
+  });
 }
 
-// Roll up the per-hour score forecast into a per-day peak. Future-only —
-// past hours don't help the user decide whether to surf later this week.
-function peakScoreByLocalDay(scoreForecast) {
+// Score threshold above which an hour counts as "rideable" — matches the
+// "fun-sized" verdict band in spots.gleam (>=5 of 10).
+const RIDEABLE_SCORE_THRESHOLD = 5;
+
+// Roll up the per-hour score forecast into a per-day count of rideable
+// hours. Truer than peak-of-hourly at multi-day horizons: one anomalous
+// noisy hour can spike a peak but won't fake a half-day of conditions.
+// Future-only — past hours don't help the user decide later this week.
+function ridableHoursByLocalDay(scoreForecast) {
   const now = Date.now();
-  const peaks = new Map();
+  const counts = new Map();
   for (const entry of scoreForecast) {
     const d = new Date(entry.at_utc);
     if (isNaN(d.getTime()) || d.getTime() < now) continue;
     const s = entry.score;
     if (!s || s.overall == null) continue;
+    if (s.overall < RIDEABLE_SCORE_THRESHOLD) continue;
     const key = localDayKey(d);
-    const prev = peaks.get(key);
-    if (!prev || s.overall > prev.overall) {
-      peaks.set(key, { overall: s.overall, verdict: s.verdict ?? '' });
-    }
+    counts.set(key, (counts.get(key) ?? 0) + 1);
   }
-  return peaks;
+  return counts;
 }
 
 function localDayKey(d) {
@@ -524,27 +534,37 @@ function circularMean(degrees) {
   return mean;
 }
 
-function buildDayCard(day, tide, peak) {
+function buildDayCard(day, tide, ridableHours, lowConfidence) {
   const card = document.createElement('article');
   card.className = 'outlook-day';
+  if (lowConfidence) card.setAttribute('data-confidence', 'low');
 
   const name = document.createElement('h3');
   name.className = 'outlook-day-name';
   name.textContent = day.label;
   card.appendChild(name);
 
-  if (peak) {
-    const score = document.createElement('div');
-    score.className = 'outlook-day-score';
-    score.innerHTML =
-      `<span class="outlook-day-score-value">${peak.overall.toFixed(1)}/10</span>` +
-      `<span class="outlook-day-score-verdict" data-band="${peak.verdict}">${peak.verdict}</span>`;
-    card.appendChild(score);
+  if (lowConfidence) {
+    const tag = document.createElement('div');
+    tag.className = 'outlook-day-tag';
+    tag.textContent = 'less certain';
+    card.appendChild(tag);
   }
 
-  card.appendChild(outlookRow('wave',   formatWaveRange(day)));
-  card.appendChild(outlookRow('period', formatOutlookPeriod(day)));
-  card.appendChild(outlookRow('swell',  formatOutlookSwell(day)));
+  const ridable = document.createElement('div');
+  ridable.className = 'outlook-day-ridable';
+  if (ridableHours > 0) {
+    ridable.setAttribute('data-state', 'rideable');
+    ridable.textContent =
+      `${ridableHours} rideable hour${ridableHours === 1 ? '' : 's'}`;
+  } else {
+    ridable.setAttribute('data-state', 'flat');
+    ridable.textContent = 'no rideable hours';
+  }
+  card.appendChild(ridable);
+
+  card.appendChild(outlookRow('wave',  formatWaveRange(day)));
+  card.appendChild(outlookRow('swell', formatOutlookSwell(day)));
   card.appendChild(buildTideRow(day, tide));
   return card;
 }
@@ -657,7 +677,7 @@ function formatOutlookSwell(day) {
 //
 // The Gleam scoring orchestrator emits a `score` block with `now` (current
 // Conditions score) and `best_overall` (highest-composite rideable window
-// in the 72h horizon). These render into the Now header and the dedicated
+// in the 5-day horizon). These render into the Now header and the dedicated
 // "next window" section. Empty windows is a first-class state — for PAG
 // it is the honest answer most days.
 
@@ -678,7 +698,7 @@ function renderNowScore(now) {
 
 function renderNextWindow(w) {
   if (!w) {
-    els.windowWhen.textContent = 'nothing in the next 72 hours';
+    els.windowWhen.textContent = 'nothing in the next 5 days';
     els.windowWhen.setAttribute('data-empty', '');
     els.windowMeta.textContent = '';
     return;

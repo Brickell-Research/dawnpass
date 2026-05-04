@@ -326,7 +326,7 @@ h1 {
 
 .outlook-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 0.8rem;
 }
 
@@ -348,34 +348,33 @@ h1 {
   letter-spacing: 0.04em;
 }
 
-/* Per-day peak score, derived in JS from data.score.forecast. Sits under the
-   day name as the headline answer for that day; rest of the card is the
-   raw inputs. Color bands match .now-score-verdict. */
-.outlook-day-score {
-  display: flex;
-  align-items: baseline;
-  gap: 0.4rem;
+/* Per-day rideable-hours count, derived in JS from data.score.forecast.
+   Sits under the day name as the headline answer for that day; counts
+   hours where score.overall >= RIDEABLE_SCORE_THRESHOLD (5, the
+   "fun-sized" band). Truer than peak-of-hourly at multi-day horizons. */
+.outlook-day-ridable {
   font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82em;
   margin-bottom: 0.4rem;
+  letter-spacing: 0.02em;
 }
 
-.outlook-day-score-value {
-  color: #7d8793;
-  font-size: 0.85em;
-}
+.outlook-day-ridable[data-state="rideable"] { color: #00CED1; }
+.outlook-day-ridable[data-state="flat"]     { color: #7d8793; font-style: italic; }
 
-.outlook-day-score-verdict {
-  color: #7d8793;
-  font-size: 0.78em;
+/* Days 4-5 of the outlook: GFS-Wave skill drops past ~72h, so fade the
+   card and surface a small "less certain" tag rather than laundering
+   model noise as a confident forecast. */
+.outlook-day[data-confidence="low"] { opacity: 0.65; }
+
+.outlook-day-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7em;
   font-style: italic;
+  color: #c08842;
+  margin-bottom: 0.3rem;
   letter-spacing: 0.04em;
 }
-
-.outlook-day-score-verdict[data-band="skip"]      { color: #7d8793; }
-.outlook-day-score-verdict[data-band="marginal"]  { color: #c08842; }
-.outlook-day-score-verdict[data-band="fun-sized"] { color: #00CED1; }
-.outlook-day-score-verdict[data-band="go now"]    { color: #FF1493; font-weight: 600; }
-.outlook-day-score-verdict[data-band="fires"]     { color: #FF1493; font-weight: 700; }
 
 .outlook-row {
   display: flex;

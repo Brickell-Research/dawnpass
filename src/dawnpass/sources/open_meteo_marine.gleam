@@ -56,8 +56,9 @@ const user_agent = "dawnpass/0.1 (https://dawnpass.brickellresearch.org)"
 
 // === HTTP fetch ===
 
-/// Fetch the current wave conditions + a 3-day hourly forecast at the
-/// given coordinate. One HTTP call returns both blocks.
+/// Fetch the current wave conditions + a 5-day hourly forecast at the
+/// given coordinate. One HTTP call returns both blocks. GFS-Wave skill
+/// drops past day 3 — the renderer fades days 4-5 to surface that.
 pub fn fetch_marine(
   latitude latitude: Float,
   longitude longitude: Float,
@@ -70,7 +71,7 @@ pub fn fetch_marine(
     <> float.to_string(longitude)
     <> "&current=wave_height,wave_period,wave_direction"
     <> "&hourly=wave_height,wave_period,wave_direction"
-    <> "&forecast_days=3"
+    <> "&forecast_days=5"
     <> "&timezone=GMT"
 
   use base_req <- result.try(
