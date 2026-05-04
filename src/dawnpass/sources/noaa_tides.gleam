@@ -67,6 +67,26 @@ const slack_threshold_minutes = 30
 
 // === HTTP fetch ===
 
+/// Try each station in order; return the first successful TideReading.
+/// If every station fails, surfaces the last error encountered. Use this
+/// instead of `fetch_tide/1` whenever you have a sensible backup station —
+/// NOAA stations go into maintenance individually and the cost of trying
+/// a second URL is negligible compared to the cost of the page losing the
+/// tide line entirely.
+pub fn fetch_tide_with_fallback(
+  stations: List(String),
+) -> Result(TideReading, TideError) {
+  case stations {
+    [] -> Error(ParseError("no tide stations configured"))
+    [station] -> fetch_tide(station)
+    [station, ..rest] ->
+      case fetch_tide(station) {
+        Ok(reading) -> Ok(reading)
+        Error(_) -> fetch_tide_with_fallback(rest)
+      }
+  }
+}
+
 /// Fetch the most recent observed water level + the upcoming hi/lo
 /// predictions for a NOAA tide station, then derive the trend.
 pub fn fetch_tide(station: String) -> Result(TideReading, TideError) {

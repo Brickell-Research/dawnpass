@@ -163,10 +163,13 @@ function render(data) {
         : '—';
   }
   if (els.mapWaterTemp) {
+    // Buoy is the primary water-temp source (offshore but local). Open-Meteo
+    // Marine ships sea_surface_temperature at the spot lat/lon and is the
+    // model fallback when NDBC is silent — accuracy is comparable for the
+    // glanceable use case on the now-card.
+    const wtmpC = r?.wtmp_c ?? marine?.sst_c ?? null;
     els.mapWaterTemp.textContent =
-      r?.wtmp_c != null
-        ? `${celsiusToF(r.wtmp_c).toFixed(0)}°F`
-        : '—';
+      wtmpC != null ? `${celsiusToF(wtmpC).toFixed(0)}°F` : '—';
   }
 
   // 5-day outlook strip — wave + tide highs/lows + per-day rideable hours.

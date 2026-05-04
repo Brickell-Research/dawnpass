@@ -14,12 +14,14 @@ import gleam/string
 
 const buoy_station = "42036"
 
-// 8726724 = Clearwater Beach (Gulf primary, ~20mi N of PAG). The previous
-// station 8726520 (St Petersburg) is on Tampa Bay — bay tides lag the
-// open Gulf by ~30-90min through Egmont Key inlet, which gave wrong
-// next-event times for a Gulf-facing spot. Future: derive PAG-specific
-// offsets from a subordinate station once spots/<spot>.json supports it.
-const tide_station = "8726724"
+// Tide station list, tried in order. 8726724 (Clearwater Beach) is the
+// Gulf-facing primary, ~20mi N of PAG. 8726520 (St Petersburg, Tampa Bay)
+// is the fallback — bay tides lag the open Gulf by ~30-90min through the
+// Egmont Key inlet so timing on next-event times will be slightly off
+// when the fallback fires, but having a tide line at all beats "—" when
+// 8726724 is in maintenance. Future: derive PAG-specific offsets from a
+// subordinate station once spots/<spot>.json supports it.
+const tide_stations = ["8726724", "8726520"]
 
 // Pass-a-Grille (decimal degrees). Hardcoded until spot configs land.
 const pag_lat = 27.685
@@ -36,7 +38,7 @@ pub fn main() -> Nil {
   io.println("dawnpass · the watch is up")
 
   let buoy_opt = log_buoy(ndbc.fetch_buoy(buoy_station))
-  let tide_opt = log_tide(noaa_tides.fetch_tide(tide_station))
+  let tide_opt = log_tide(noaa_tides.fetch_tide_with_fallback(tide_stations))
   let marine_opt =
     log_marine(open_meteo_marine.fetch_marine(
       latitude: pag_lat,

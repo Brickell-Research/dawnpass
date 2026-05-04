@@ -28,6 +28,9 @@ pub type MarineReading {
     wave_height_m: Option(Float),
     wave_period_s: Option(Float),
     wave_direction_deg: Option(Int),
+    /// Sea-surface temperature in °C from the model. Used as the renderer's
+    /// fallback when the NDBC buoy (the primary water-temp source) is silent.
+    sst_c: Option(Float),
     forecast: List(MarineForecastHour),
   )
 }
@@ -69,7 +72,7 @@ pub fn fetch_marine(
     <> float.to_string(latitude)
     <> "&longitude="
     <> float.to_string(longitude)
-    <> "&current=wave_height,wave_period,wave_direction"
+    <> "&current=wave_height,wave_period,wave_direction,sea_surface_temperature"
     <> "&hourly=wave_height,wave_period,wave_direction"
     <> "&forecast_days=5"
     <> "&timezone=GMT"
@@ -96,7 +99,11 @@ pub fn parse_marine(body: String) -> Result(MarineReading, MarineError) {
     use wh <- decode.field("wave_height", decode.optional(decode.float))
     use wp <- decode.field("wave_period", decode.optional(decode.float))
     use wd <- decode.field("wave_direction", decode.optional(decode.int))
-    decode.success(#(time, wh, wp, wd))
+    use sst <- decode.field(
+      "sea_surface_temperature",
+      decode.optional(decode.float),
+    )
+    decode.success(#(time, wh, wp, wd, sst))
   }
   let hourly_decoder = {
     use times <- decode.field("time", decode.list(decode.string))
@@ -119,7 +126,7 @@ pub fn parse_marine(body: String) -> Result(MarineReading, MarineError) {
     use longitude <- decode.field("longitude", decode.float)
     use current <- decode.field("current", current_decoder)
     use hourly <- decode.field("hourly", hourly_decoder)
-    let #(time, wh, wp, wd) = current
+    let #(time, wh, wp, wd, sst) = current
     let #(times, heights, periods, dirs) = hourly
     decode.success(MarineReading(
       latitude:,
@@ -128,6 +135,7 @@ pub fn parse_marine(body: String) -> Result(MarineReading, MarineError) {
       wave_height_m: wh,
       wave_period_s: wp,
       wave_direction_deg: wd,
+      sst_c: sst,
       forecast: zip4_hours(times, heights, periods, dirs),
     ))
   }
@@ -186,6 +194,7 @@ pub fn encode(r: MarineReading) -> json.Json {
     #("wave_height_m", encode_optional(r.wave_height_m, json.float)),
     #("wave_period_s", encode_optional(r.wave_period_s, json.float)),
     #("wave_direction_deg", encode_optional(r.wave_direction_deg, json.int)),
+    #("sst_c", encode_optional(r.sst_c, json.float)),
     #("forecast", json.array(r.forecast, of: encode_forecast_hour)),
   ])
 }
