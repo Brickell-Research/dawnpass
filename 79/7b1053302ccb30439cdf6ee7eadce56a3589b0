@@ -1,0 +1,35 @@
+public/index.template.html
+  cecd0320e421cda8 247,270-274
+public/wave.js
+  cecd0320e421cda8 166,171,418,420,435,444-448,450-454,457-465,467,473,475,477,537,540,547-562,564,566-567,680,701
+public/styles.css
+  cecd0320e421cda8 329,351-355,357,359,362-363,365-372,374-375
+src/dawnpass/sources/noaa_tides.gleam
+  cecd0320e421cda8 75,131
+src/dawnpass/sources/open_meteo_marine.gleam
+  cecd0320e421cda8 59-61,74
+src/dawnpass/sources/open_meteo_forecast.gleam
+  cecd0320e421cda8 69
+public/index.html
+  cecd0320e421cda8 247,270-274
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "797b1053302ccb30439cdf6ee7eadce56a3589b0",
+  "prompts": {
+    "cecd0320e421cda8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "348a5c78-5a64-4dfd-8c55-8d7e84bd5309",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "robertDurst",
+      "messages": [],
+      "total_additions": 96,
+      "total_deletions": 66,
+      "accepted_lines": 90,
+      "overriden_lines": 0
+    }
+  }
+}
