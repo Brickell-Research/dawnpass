@@ -253,23 +253,23 @@
       <h2 class="method-title">how we score it</h2>
 
       <div class="method-block">
-        <h3 class="method-block-title">what we look at</h3>
-        <p>Four factors, weighted. Wind carries the most — the right swell with the wrong wind is unsurfable, but a soft swell with offshore wind can still be fun. Wave height and period carry most of the rest. Swell direction is graded against PAG's preferred bearing: straight west is best, and anything more than ~50° off starts to wrap or shadow. Tide is shown on the page but not scored yet — waiting on session-rating data to calibrate against.</p>
+        <h3 class="method-block-title">what I look at</h3>
+        <p>Four inputs: wave height, period, swell direction, wind. Weighted sum, capped at 10, with a verdict (skip / marginal / fun-sized / go now / fires). Wind carries the most. The right swell with the wrong wind isn't surfable, but a soft swell with offshore wind can still be a day.</p>
       </div>
 
       <div class="method-block">
         <h3 class="method-block-title">what "go now" looks like at PAG</h3>
-        <p>The model earns a <em>go now</em> verdict (7/10+) when wave height sits in the longboard sweet spot, period clears 7 seconds, swell wraps in close to due west, and the wind is light and offshore. <em>Fires</em> (9+) is all four at once — Gulf coast, longboard scale, don't expect it often.</p>
+        <p>Wave height in the longboard sweet spot, period over 7 seconds, swell wrapping in close to due west, and light offshore wind. <em>Fires</em> is all four at once. Florida Gulf longboard break, don't expect it often.</p>
       </div>
 
       <div class="method-block">
-        <h3 class="method-block-title">what kills a day</h3>
-        <p>Three hard vetoes override the score no matter how good everything else looks: wave too small for a longboard, period short enough that it's wind chop instead of waves, or onshore wind strong enough to blow the face out (over ~12 knots). When a veto fires it's named on the score block — today's <em>period too short, no organisation</em> is one we see a lot.</p>
+        <h3 class="method-block-title">the kill switches</h3>
+        <p>Wave too small, period under ~4 seconds (wind chop, not waves), or onshore wind over 12 knots. Any one vetoes the score regardless of the rest. The score block names which one fired.</p>
       </div>
 
       <div class="method-block">
-        <h3 class="method-block-title">what we don't pretend to know</h3>
-        <p>The thresholds are taste — tuned by reading what surf science exists and watching what PAG actually does, not derived from any oceanographer's standard. We score one spot. Tide isn't weighted yet. There's no AI in the scoring math; the model is a few hundred lines of Gleam in the repo. When the buoys go dark in a hurricane, we go dark too — designed for replaceability, not survivability.</p>
+        <h3 class="method-block-title">what I'm not pretending</h3>
+        <p>Thresholds are taste, tuned by reading the surf science that exists and watching what PAG actually does. One spot. Tide is shown but not weighted yet, waiting on rated sessions to calibrate. No scraped sources, no AI in the scoring math. Whole model is a few hundred lines of Gleam in the repo.</p>
       </div>
     </section>
   </main>
