@@ -106,3 +106,98 @@ pub const pag = SpotConfig(
     l_min_hours: 2,
   ),
 )
+
+/// Venice South Jetty — Sarasota County, ~85min south of St. Pete. The
+/// rock jetty refracts swell into a steeper wedge than the open-coast
+/// sandbar at PAG, so identical Hs/Tp can produce visibly different
+/// rideable wave on the same day. Beach normal is ~250 (WSW) — the
+/// jetty itself runs WNW, but the surfable face sits south of it
+/// looking out at a slightly more SW-of-W exposure than PAG.
+///
+/// Factors / verdicts / windows are inherited from PAG verbatim for v1.
+/// Per-spot tuning (Venice's jetty wedge probably tolerates more sideshore
+/// and bigger wave sizes than PAG's sandbar) is deferred until there's
+/// observed-vs-rated session data to calibrate against.
+pub const venice_south = SpotConfig(
+  name: "Venice South Jetty",
+  beach_normal_deg: 250,
+  factors: [
+    Factor(
+      name: "hs_m",
+      breakpoints: [
+        #(0.0, 0.0),
+        #(0.3, 0.0),
+        #(0.5, 0.4),
+        #(0.8, 0.8),
+        #(1.2, 1.0),
+        #(1.8, 0.7),
+        #(2.5, 0.3),
+      ],
+      weight: 1.0,
+      veto_below_subscore: 0.001,
+      veto_message: "wave height too small for longboard",
+    ),
+    Factor(
+      name: "tp_s",
+      breakpoints: [
+        #(0.0, 0.0),
+        #(4.0, 0.0),
+        #(5.0, 0.3),
+        #(7.0, 0.8),
+        #(9.0, 1.0),
+        #(12.0, 1.0),
+        #(14.0, 0.7),
+        #(20.0, 0.5),
+      ],
+      weight: 0.8,
+      veto_below_subscore: 0.001,
+      veto_message: "period too short, no organisation",
+    ),
+    Factor(
+      name: "swell_dir_offset",
+      breakpoints: [
+        #(0.0, 1.0),
+        #(20.0, 0.95),
+        #(40.0, 0.8),
+        #(60.0, 0.5),
+        #(90.0, 0.2),
+        #(120.0, 0.0),
+      ],
+      weight: 0.6,
+      veto_below_subscore: 0.0,
+      veto_message: "",
+    ),
+    Factor(
+      name: "wind_kt_signed",
+      breakpoints: [
+        #(-30.0, 0.0),
+        #(-12.0, 0.0),
+        #(-8.0, 0.3),
+        #(-4.0, 0.6),
+        #(0.0, 0.85),
+        #(5.0, 1.0),
+        #(10.0, 1.0),
+        #(15.0, 0.7),
+        #(20.0, 0.4),
+        #(30.0, 0.1),
+      ],
+      weight: 1.2,
+      veto_below_subscore: 0.001,
+      veto_message: "onshore wind too strong (>12 kt)",
+    ),
+  ],
+  verdicts: [
+    Verdict(min_score: 0.0, label: "skip"),
+    Verdict(min_score: 3.0, label: "marginal"),
+    Verdict(min_score: 5.0, label: "fun-sized"),
+    Verdict(min_score: 7.0, label: "go now"),
+    Verdict(min_score: 9.0, label: "fires"),
+  ],
+  windows: WindowConfig(
+    t_high: 6.0,
+    t_low: 5.0,
+    n_open: 2,
+    n_close: 1,
+    l_min_hours: 2,
+  ),
+)

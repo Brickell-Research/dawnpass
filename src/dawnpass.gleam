@@ -1,5 +1,6 @@
 import dawnpass/ingest
 import dawnpass/score/orchestrator as score_orch
+import dawnpass/score/spot_config.{type SpotConfig}
 import dawnpass/score/spots
 import dawnpass/sources/ndbc
 import dawnpass/sources/noaa_tides
@@ -27,6 +28,51 @@ const tide_stations = ["8726724", "8726520"]
 const pag_lat = 27.685
 
 const pag_lon = -82.738
+
+// Venice South Jetty (decimal degrees). Same offshore swell region as PAG
+// but ~85min south by car; the rock jetty produces a meaningfully different
+// wave shape on the same model inputs. Shares NDBC 42036 (regional buoy)
+// and the PAG tide stations for v1 — the Venice tide gauge sits closer
+// (likely 8728690 or similar) and Venice has a ~30-60min phase offset from
+// Clearwater Beach. Per-spot tide source is queued as O4.
+const venice_lat = 27.073
+
+const venice_lon = -82.456
+
+/// One surf spot's identity for the per-spot ingest loop. `slug` is the
+/// short JSON key (e.g. "pag", "venice_south") under which this spot's
+/// blocks land in latest.json. `spot_config` is the scoring config (factor
+/// breakpoints, verdicts, windows) from src/dawnpass/score/spots.gleam.
+pub type Spot {
+  Spot(
+    slug: String,
+    name: String,
+    latitude: Float,
+    longitude: Float,
+    spot_config: SpotConfig,
+  )
+}
+
+const pag_spot = Spot(
+  slug: "pag",
+  name: "Pass-a-Grille",
+  latitude: pag_lat,
+  longitude: pag_lon,
+  spot_config: spots.pag,
+)
+
+const venice_spot = Spot(
+  slug: "venice_south",
+  name: "Venice South Jetty",
+  latitude: venice_lat,
+  longitude: venice_lon,
+  spot_config: spots.venice_south,
+)
+
+// Order matters: this is also the JSON serialisation order under
+// `spots.<slug>` and the rendering order on the static page (PAG first,
+// Venice below). Keep PAG first as the daily ritual primary spot.
+const spots_list: List(Spot) = [pag_spot, venice_spot]
 
 const data_path = "public/data/latest.json"
 
