@@ -83,18 +83,15 @@ const index_output_path = "public/index.html"
 pub fn main() -> Nil {
   io.println("dawnpass · the watch is up")
 
+  // Shared sources: NDBC buoy + NOAA tide carry regional signal that's
+  // identical for any spot in the eastern Gulf within ~100mi. Fetched once.
   let buoy_opt = log_buoy(ndbc.fetch_buoy(buoy_station))
   let tide_opt = log_tide(noaa_tides.fetch_tide_with_fallback(tide_stations))
-  let marine_opt =
-    log_marine(open_meteo_marine.fetch_marine(
-      latitude: pag_lat,
-      longitude: pag_lon,
-    ))
-  let wind_opt =
-    log_wind(open_meteo_forecast.fetch_wind(
-      latitude: pag_lat,
-      longitude: pag_lon,
-    ))
+
+  // Per-spot fan-out: each spot fetches its own marine + wind at its lat/lon
+  // and computes its own wave layers + score. Output lands under spots.<slug>.
+  let spot_entries =
+    list.map(spots_list, fn(s) { build_spot_entry(s, buoy_opt, tide_opt) })
 
   let buoy_block = case buoy_opt {
     Some(r) -> [#("buoy_" <> r.station, ndbc.encode(r))]
@@ -104,45 +101,16 @@ pub fn main() -> Nil {
     Some(r) -> [#("tide_" <> r.station, noaa_tides.encode(r))]
     None -> []
   }
-  let marine_block = case marine_opt {
-    Some(r) -> [#("marine_pag", open_meteo_marine.encode(r))]
-    None -> []
-  }
-  let wind_block = case wind_opt {
-    Some(r) -> [#("wind_pag", open_meteo_forecast.encode(r))]
-    None -> []
-  }
 
-  // Computed wave layer block — derived from buoy + marine via wave_spec.
-  // Always emitted (Silent when both sources are wave-null) so the renderer
-  // can rely on `data.wave` being present.
-  let wave_layers = wave_spec.compute_layers(buoy_opt, marine_opt, wind_opt)
-  let wave_block = [#("wave", wave_spec.encode(wave_layers))]
-
-  // Scoring + window detection. Always emitted (the page can read it
-  // regardless of which sources succeeded).
-  let score_block = [
-    #(
-      "score",
-      score_orch.build_block(
-        buoy_opt,
-        tide_opt,
-        marine_opt,
-        wind_opt,
-        spots.pag,
-      ),
-    ),
-  ]
+  let spots_pairs =
+    list.map(spot_entries, fn(e) {
+      let SpotEntry(slug:, json:, ..) = e
+      #(slug, json)
+    })
+  let spots_block = [#("spots", json.object(spots_pairs))]
 
   let blocks: List(#(String, json.Json)) =
-    list.flatten([
-      buoy_block,
-      tide_block,
-      marine_block,
-      wind_block,
-      wave_block,
-      score_block,
-    ])
+    list.flatten([buoy_block, tide_block, spots_block])
 
   case ingest.write_latest(blocks, to: data_path) {
     Ok(_) -> io.println("wrote " <> data_path)
@@ -150,16 +118,100 @@ pub fn main() -> Nil {
   }
 
   // SSR the wave-layer paths into index.html so first paint is correct
-  // without JS. JS still mounts on top to animate.
+  // without JS. JS still mounts on top to animate. The template only
+  // substitutes one set of {{WAVE_*_D}} placeholders, so the SSR uses
+  // PAG's wave layers as canonical (PAG is the first spot in spots_list
+  // and the daily-ritual primary). Venice's wave SVG paints from JS at
+  // render time once data.spots.venice_south.wave lands.
+  let canonical_wave = canonical_wave_layers(spot_entries, buoy_opt)
   case
     ingest.write_index(
-      wave_layers,
+      canonical_wave,
       template: index_template_path,
       output: index_output_path,
     )
   {
     Ok(_) -> io.println("wrote " <> index_output_path)
     Error(e) -> io.println("index write failed: " <> string.inspect(e))
+  }
+}
+
+/// Container for one spot's per-fetch state plus the encoded JSON object
+/// that lands under `spots.<slug>` and the computed WaveLayers (kept around
+/// so PAG's layers can drive the SSR substitution).
+type SpotEntry {
+  SpotEntry(
+    slug: String,
+    json: json.Json,
+    wave_layers: wave_spec.WaveLayers,
+  )
+}
+
+fn build_spot_entry(
+  spot: Spot,
+  buoy_opt: Option(ndbc.BuoyReading),
+  tide_opt: Option(noaa_tides.TideReading),
+) -> SpotEntry {
+  let marine_opt =
+    log_marine(
+      open_meteo_marine.fetch_marine(
+        latitude: spot.latitude,
+        longitude: spot.longitude,
+      ),
+      spot.slug,
+    )
+  let wind_opt =
+    log_wind(
+      open_meteo_forecast.fetch_wind(
+        latitude: spot.latitude,
+        longitude: spot.longitude,
+      ),
+      spot.slug,
+    )
+
+  let wave_layers = wave_spec.compute_layers(buoy_opt, marine_opt, wind_opt)
+  let score_json =
+    score_orch.build_block(
+      buoy_opt,
+      tide_opt,
+      marine_opt,
+      wind_opt,
+      spot.spot_config,
+    )
+
+  let marine_json = case marine_opt {
+    Some(r) -> open_meteo_marine.encode(r)
+    None -> json.null()
+  }
+  let wind_json = case wind_opt {
+    Some(r) -> open_meteo_forecast.encode(r)
+    None -> json.null()
+  }
+
+  let spot_json =
+    json.object([
+      #("name", json.string(spot.name)),
+      #("latitude", json.float(spot.latitude)),
+      #("longitude", json.float(spot.longitude)),
+      #("marine", marine_json),
+      #("wind", wind_json),
+      #("wave", wave_spec.encode(wave_layers)),
+      #("score", score_json),
+    ])
+
+  SpotEntry(slug: spot.slug, json: spot_json, wave_layers:)
+}
+
+/// SSR substitution needs a single set of WaveLayers. Use the first spot's
+/// (PAG by convention). Falls back to a Silent layer set if the loop somehow
+/// produced nothing — the renderer handles silent/null amplitudes already.
+fn canonical_wave_layers(
+  spot_entries: List(SpotEntry),
+  buoy_opt: Option(ndbc.BuoyReading),
+) -> wave_spec.WaveLayers {
+  case spot_entries {
+    [first, ..] -> first.wave_layers
+    [] -> wave_spec.compute_layers(buoy_opt, None, None)
   }
 }
 
@@ -197,15 +249,18 @@ fn log_tide(
 
 fn log_marine(
   res: Result(open_meteo_marine.MarineReading, open_meteo_marine.MarineError),
+  slug: String,
 ) -> Option(open_meteo_marine.MarineReading) {
   case res {
     Ok(r) -> {
-      io.println("marine pag · " <> r.observed_at_utc)
+      io.println("marine " <> slug <> " · " <> r.observed_at_utc)
       io.println(string.inspect(r))
       Some(r)
     }
     Error(e) -> {
-      io.println("open-meteo marine fetch failed: " <> string.inspect(e))
+      io.println(
+        "open-meteo marine fetch (" <> slug <> ") failed: " <> string.inspect(e),
+      )
       None
     }
   }
@@ -216,15 +271,17 @@ fn log_wind(
     open_meteo_forecast.WindForecast,
     open_meteo_forecast.ForecastError,
   ),
+  slug: String,
 ) -> Option(open_meteo_forecast.WindForecast) {
   case res {
     Ok(r) -> {
-      io.println("wind pag · " <> r.observed_at_utc)
+      io.println("wind " <> slug <> " · " <> r.observed_at_utc)
       Some(r)
     }
     Error(e) -> {
       io.println(
-        "open-meteo forecast (wind) fetch failed: " <> string.inspect(e),
+        "open-meteo forecast (wind, " <> slug <> ") failed: "
+        <> string.inspect(e),
       )
       None
     }
