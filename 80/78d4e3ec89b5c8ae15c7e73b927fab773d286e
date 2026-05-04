@@ -1,0 +1,31 @@
+public/wave.js
+  cecd0320e421cda8 44,51-70,196-206
+public/index.template.html
+  cecd0320e421cda8 185-193
+test/wave_spec_test.gleam
+  cecd0320e421cda8 53
+public/index.html
+  cecd0320e421cda8 185-193
+src/dawnpass/sources/open_meteo_forecast.gleam
+  cecd0320e421cda8 32-36,47,72-73,93-94,110-114,121-122,130-131,141,146,148-149,155,157,159,183,194
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "8078d4e3ec89b5c8ae15c7e73b927fab773d286e",
+  "prompts": {
+    "cecd0320e421cda8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "348a5c78-5a64-4dfd-8c55-8d7e84bd5309",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "robertDurst",
+      "messages": [],
+      "total_additions": 79,
+      "total_deletions": 12,
+      "accepted_lines": 79,
+      "overriden_lines": 0
+    }
+  }
+}
