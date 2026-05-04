@@ -1,0 +1,23 @@
+.github/workflows/forecast.yml
+  cecd0320e421cda8 16-20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "8bed93edfdcc1cece9de86d609ebea684dd0ab8a",
+  "prompts": {
+    "cecd0320e421cda8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "348a5c78-5a64-4dfd-8c55-8d7e84bd5309",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "robertDurst",
+      "messages": [],
+      "total_additions": 5,
+      "total_deletions": 1,
+      "accepted_lines": 5,
+      "overriden_lines": 0
+    }
+  }
+}
