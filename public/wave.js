@@ -41,11 +41,32 @@ const els = {
   windowMeta:      document.getElementById('window-meta'),
   mapAirTemp:      document.getElementById('map-air-temp'),
   mapWaterTemp:    document.getElementById('map-water-temp'),
+  mapPressure:     document.getElementById('map-pressure'),
 };
 
 const C_TO_F_OFFSET = 32;
 const C_TO_F_MULT = 9 / 5;
 function celsiusToF(c) { return c * C_TO_F_MULT + C_TO_F_OFFSET; }
+
+const PRESSURE_TREND_HOURS = 6;
+const PRESSURE_TREND_THRESHOLD_HPA = 1.0;
+
+// Returns ↑ / ↓ / → based on forecast +6h pressure vs current. Empty string
+// when either side is missing — caller decides what to render.
+function pressureTrendArrow(windBlock) {
+  const now = windBlock?.pressure_hpa;
+  if (now == null || !Array.isArray(windBlock?.forecast)) return '';
+  const target = Date.now() + PRESSURE_TREND_HOURS * 3600 * 1000;
+  const future = windBlock.forecast.find(h => {
+    const t = new Date(h.at_utc).getTime();
+    return !isNaN(t) && t >= target;
+  });
+  if (future?.pressure_hpa == null) return '';
+  const delta = future.pressure_hpa - now;
+  if (delta >  PRESSURE_TREND_THRESHOLD_HPA) return '↑';
+  if (delta < -PRESSURE_TREND_THRESHOLD_HPA) return '↓';
+  return '→';
+}
 
 // Beach orientation for wind-quality classification. PAG faces west, so
 // the beach normal (perpendicular pointing to open water) is 270°. Moves
@@ -170,6 +191,17 @@ function render(data) {
     const wtmpC = r?.wtmp_c ?? marine?.sst_c ?? null;
     els.mapWaterTemp.textContent =
       wtmpC != null ? `${celsiusToF(wtmpC).toFixed(0)}°F` : '—';
+  }
+
+  if (els.mapPressure) {
+    // Pressure trend = sign(forecast +6h - current) past a ±1 hPa threshold.
+    // Falling pressure on the Gulf often precedes a frontal passage that
+    // brings W/NW winds and the rare swell that actually gets PAG firing,
+    // so the arrow is the surfer-relevant signal — value alone is filler.
+    const pressureNow = windBlock?.pressure_hpa ?? null;
+    const arrow = pressureTrendArrow(windBlock);
+    els.mapPressure.textContent =
+      pressureNow != null ? `${pressureNow.toFixed(0)} ${arrow}`.trim() : '—';
   }
 
   // 5-day outlook strip — wave + tide highs/lows + per-day rideable hours.

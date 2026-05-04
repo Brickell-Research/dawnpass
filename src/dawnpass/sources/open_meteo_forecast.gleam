@@ -29,6 +29,11 @@ pub type WindForecast {
     /// "what does it feel like outside" temperature, distinct from the
     /// offshore-buoy ATMP.
     air_temp_c: Option(Float),
+    /// Mean sea level pressure (hPa). Renderer pairs this with the +6h
+    /// forecast value to derive a rising/falling/steady trend — falling
+    /// pressure usually precedes a frontal passage, which on the Gulf
+    /// often brings the W/NW wind shifts that produce surf.
+    pressure_hpa: Option(Float),
     forecast: List(WindForecastHour),
   )
 }
@@ -39,6 +44,7 @@ pub type WindForecastHour {
     wind_speed_ms: Option(Float),
     wind_direction_deg: Option(Int),
     air_temp_c: Option(Float),
+    pressure_hpa: Option(Float),
   )
 }
 
@@ -63,8 +69,8 @@ pub fn fetch_wind(
     <> float.to_string(latitude)
     <> "&longitude="
     <> float.to_string(longitude)
-    <> "&current=wind_speed_10m,wind_direction_10m,temperature_2m"
-    <> "&hourly=wind_speed_10m,wind_direction_10m,temperature_2m"
+    <> "&current=wind_speed_10m,wind_direction_10m,temperature_2m,pressure_msl"
+    <> "&hourly=wind_speed_10m,wind_direction_10m,temperature_2m,pressure_msl"
     <> "&wind_speed_unit=ms"
     <> "&forecast_days=5"
     <> "&timezone=GMT"
@@ -84,7 +90,8 @@ pub fn parse_forecast(body: String) -> Result(WindForecast, ForecastError) {
     use ws <- decode.field("wind_speed_10m", decode.optional(decode.float))
     use wd <- decode.field("wind_direction_10m", decode.optional(decode.int))
     use t <- decode.field("temperature_2m", decode.optional(decode.float))
-    decode.success(#(time, ws, wd, t))
+    use p <- decode.field("pressure_msl", decode.optional(decode.float))
+    decode.success(#(time, ws, wd, t, p))
   }
   let hourly_decoder = {
     use times <- decode.field("time", decode.list(decode.string))
@@ -100,15 +107,19 @@ pub fn parse_forecast(body: String) -> Result(WindForecast, ForecastError) {
       "temperature_2m",
       decode.list(decode.optional(decode.float)),
     )
-    decode.success(#(times, speeds, dirs, temps))
+    use pressures <- decode.field(
+      "pressure_msl",
+      decode.list(decode.optional(decode.float)),
+    )
+    decode.success(#(times, speeds, dirs, temps, pressures))
   }
   let decoder = {
     use latitude <- decode.field("latitude", decode.float)
     use longitude <- decode.field("longitude", decode.float)
     use current <- decode.field("current", current_decoder)
     use hourly <- decode.field("hourly", hourly_decoder)
-    let #(time, ws, wd, t) = current
-    let #(times, speeds, dirs, temps) = hourly
+    let #(time, ws, wd, t, p) = current
+    let #(times, speeds, dirs, temps, pressures) = hourly
     decode.success(WindForecast(
       latitude:,
       longitude:,
@@ -116,7 +127,8 @@ pub fn parse_forecast(body: String) -> Result(WindForecast, ForecastError) {
       wind_speed_ms: ws,
       wind_direction_deg: wd,
       air_temp_c: t,
-      forecast: zip4_hours(times, speeds, dirs, temps),
+      pressure_hpa: p,
+      forecast: zip5_hours(times, speeds, dirs, temps, pressures),
     ))
   }
 
@@ -126,23 +138,25 @@ pub fn parse_forecast(body: String) -> Result(WindForecast, ForecastError) {
   }
 }
 
-fn zip4_hours(
+fn zip5_hours(
   ts: List(String),
   ss: List(Option(Float)),
   ds: List(Option(Int)),
   temps: List(Option(Float)),
+  pressures: List(Option(Float)),
 ) -> List(WindForecastHour) {
-  case ts, ss, ds, temps {
-    [t, ..ts2], [s, ..ss2], [d, ..ds2], [tp, ..temps2] -> [
+  case ts, ss, ds, temps, pressures {
+    [t, ..ts2], [s, ..ss2], [d, ..ds2], [tp, ..temps2], [p, ..ps2] -> [
       WindForecastHour(
         at_utc: normalize_timestamp(t),
         wind_speed_ms: s,
         wind_direction_deg: d,
         air_temp_c: tp,
+        pressure_hpa: p,
       ),
-      ..zip4_hours(ts2, ss2, ds2, temps2)
+      ..zip5_hours(ts2, ss2, ds2, temps2, ps2)
     ]
-    _, _, _, _ -> []
+    _, _, _, _, _ -> []
   }
 }
 
@@ -166,6 +180,7 @@ pub fn encode(w: WindForecast) -> json.Json {
     #("wind_speed_ms", encode_optional(w.wind_speed_ms, json.float)),
     #("wind_direction_deg", encode_optional(w.wind_direction_deg, json.int)),
     #("air_temp_c", encode_optional(w.air_temp_c, json.float)),
+    #("pressure_hpa", encode_optional(w.pressure_hpa, json.float)),
     #("forecast", json.array(w.forecast, of: encode_forecast_hour)),
   ])
 }
@@ -176,6 +191,7 @@ fn encode_forecast_hour(h: WindForecastHour) -> json.Json {
     #("wind_speed_ms", encode_optional(h.wind_speed_ms, json.float)),
     #("wind_direction_deg", encode_optional(h.wind_direction_deg, json.int)),
     #("air_temp_c", encode_optional(h.air_temp_c, json.float)),
+    #("pressure_hpa", encode_optional(h.pressure_hpa, json.float)),
   ])
 }
 
