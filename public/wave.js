@@ -33,6 +33,7 @@ const els = {
   windTag:         document.getElementById('m-wind-tag'),
   waveTag:         document.getElementById('m-wave-tag'),
   outlookGrid:     document.getElementById('outlook-grid'),
+  meanLabel:       document.getElementById('wave-mean-label'),
   nowScore:        document.getElementById('now-score'),
   nowScoreValue:   document.getElementById('now-score-value'),
   nowScoreVerdict: document.getElementById('now-score-verdict'),
@@ -366,18 +367,33 @@ function stopMotion() {
   if (breathRafId)    { cancelAnimationFrame(breathRafId); breathRafId = null; }
 }
 
+// Mean-vs-swell period gap below which the mean line is visual noise rather
+// than signal. Buoy ships Tp (dominant) and Tm (mean across freqs); when
+// they're within ~1.5s the two sines render as near-identical shapes and
+// the white line just thickens the cyan one. Above the threshold the gap
+// reads as actual swell organisation (clean vs confused), and the label
+// surfaces "mean" so the rare signal explains itself.
+const MEAN_DIVERGENCE_THRESHOLD_S = 1.5;
+
 function drawAll() {
   drawLayer(els.swell, wave.swell);
-  // Skip mean when it would just be a smaller copy of swell (same period →
-  // same shape, drawn under swell, pure visual noise). Honest about provenance:
-  // a marine-source day with no Tm shows as swell + chop, not three-component.
-  const meanCollapsed = wave.mean.period_s === wave.swell.period_s
-    && wave.mean.period_s != null;
+
+  const meanCollapsed = wave.mean.period_s != null
+    && wave.swell.period_s != null
+    && Math.abs(wave.mean.period_s - wave.swell.period_s) < MEAN_DIVERGENCE_THRESHOLD_S;
   if (meanCollapsed) {
     els.mean.setAttribute('d', '');
   } else {
     drawLayer(els.mean, wave.mean);
   }
+  if (els.meanLabel) {
+    if (meanCollapsed || wave.mean.amp <= 0) {
+      els.meanLabel.setAttribute('hidden', '');
+    } else {
+      els.meanLabel.removeAttribute('hidden');
+    }
+  }
+
   drawLayer(els.chop, wave.chop);
 }
 

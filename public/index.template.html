@@ -72,6 +72,7 @@
           </div>
 
           <div class="wave-frame">
+            <span class="wave-mean-label" id="wave-mean-label" hidden>mean</span>
             <svg class="now-wave" viewBox="0 0 800 100" preserveAspectRatio="none" aria-hidden="true">
               <path id="wave-chop"  d="{{WAVE_CHOP_D}}"  fill="none" stroke-linecap="round"/>
               <path id="wave-mean"  d="{{WAVE_MEAN_D}}"  fill="none" stroke-linecap="round"/>
@@ -246,6 +247,30 @@
     <section class="outlook" aria-label="3-day outlook">
       <h2 class="outlook-title">outlook</h2>
       <div class="outlook-grid" id="outlook-grid"></div>
+    </section>
+
+    <section class="method" aria-label="how we score it">
+      <h2 class="method-title">how we score it</h2>
+
+      <div class="method-block">
+        <h3 class="method-block-title">what we look at</h3>
+        <p>Four factors, weighted. Wind carries the most — the right swell with the wrong wind is unsurfable, but a soft swell with offshore wind can still be fun. Wave height and period carry most of the rest. Swell direction is graded against PAG's preferred bearing: straight west is best, and anything more than ~50° off starts to wrap or shadow. Tide is shown on the page but not scored yet — waiting on session-rating data to calibrate against.</p>
+      </div>
+
+      <div class="method-block">
+        <h3 class="method-block-title">what "go now" looks like at PAG</h3>
+        <p>The model earns a <em>go now</em> verdict (7/10+) when wave height sits in the longboard sweet spot, period clears 7 seconds, swell wraps in close to due west, and the wind is light and offshore. <em>Fires</em> (9+) is all four at once — Gulf coast, longboard scale, don't expect it often.</p>
+      </div>
+
+      <div class="method-block">
+        <h3 class="method-block-title">what kills a day</h3>
+        <p>Three hard vetoes override the score no matter how good everything else looks: wave too small for a longboard, period short enough that it's wind chop instead of waves, or onshore wind strong enough to blow the face out (over ~12 knots). When a veto fires it's named on the score block — today's <em>period too short, no organisation</em> is one we see a lot.</p>
+      </div>
+
+      <div class="method-block">
+        <h3 class="method-block-title">what we don't pretend to know</h3>
+        <p>The thresholds are taste — tuned by reading what surf science exists and watching what PAG actually does, not derived from any oceanographer's standard. We score one spot. Tide isn't weighted yet. There's no AI in the scoring math; the model is a few hundred lines of Gleam in the repo. When the buoys go dark in a hurricane, we go dark too — designed for replaceability, not survivability.</p>
+      </div>
     </section>
   </main>
 

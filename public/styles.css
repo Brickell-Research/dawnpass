@@ -201,6 +201,22 @@ h1 {
   margin-bottom: 0.6rem;
 }
 
+/* Surfaced only when |Tm − Tp| ≥ 1.5s — i.e. when the buoy's average period
+   meaningfully diverges from the dominant. Lets the rare signal explain
+   itself instead of carrying a full-time legend for an ambient layer. */
+.wave-mean-label {
+  position: absolute;
+  top: 0;
+  right: 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65em;
+  font-style: italic;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.wave-mean-label[hidden] { display: none; }
+
 .now-wave {
   display: block;
   width: 100%;
@@ -429,6 +445,49 @@ h1 {
   .outlook-grid { grid-template-columns: 1fr; gap: 0.5rem; }
   .outlook-day { padding: 0.6rem 0.7rem; }
   .outlook-value { font-size: 0.82em; }
+}
+
+.method {
+  margin-bottom: 1.6em;
+  padding: 1.2rem 1.4rem;
+  background: #0a0a14;
+  border: 1px solid #1a1a2e;
+  border-radius: 8px;
+}
+
+.method-title {
+  font-family: 'JetBrains Mono', monospace;
+  color: #FF1493;
+  font-size: 1.2em;
+  margin-bottom: 1rem;
+}
+
+.method-title::before { content: "// "; color: #7d8793; }
+
+.method-block {
+  margin-bottom: 1rem;
+}
+
+.method-block:last-child { margin-bottom: 0; }
+
+.method-block-title {
+  font-family: 'JetBrains Mono', monospace;
+  color: #E0FFFF;
+  font-size: 0.85em;
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+  letter-spacing: 0.04em;
+}
+
+.method-block p {
+  font-size: 0.85em;
+  color: #c8d4dc;
+  line-height: 1.6;
+}
+
+.method-block em {
+  font-style: italic;
+  color: #E0FFFF;
 }
 
 .notes {
