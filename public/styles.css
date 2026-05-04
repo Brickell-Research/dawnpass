@@ -449,49 +449,6 @@ h1 {
   .outlook-value { font-size: 0.82em; }
 }
 
-.method {
-  margin-bottom: 1.6em;
-  padding: 1.2rem 1.4rem;
-  background: #0a0a14;
-  border: 1px solid #1a1a2e;
-  border-radius: 8px;
-}
-
-.method-title {
-  font-family: 'JetBrains Mono', monospace;
-  color: #FF1493;
-  font-size: 1.2em;
-  margin-bottom: 1rem;
-}
-
-.method-title::before { content: "// "; color: #7d8793; }
-
-.method-block {
-  margin-bottom: 1rem;
-}
-
-.method-block:last-child { margin-bottom: 0; }
-
-.method-block-title {
-  font-family: 'JetBrains Mono', monospace;
-  color: #E0FFFF;
-  font-size: 0.85em;
-  font-weight: 600;
-  margin-bottom: 0.3rem;
-  letter-spacing: 0.04em;
-}
-
-.method-block p {
-  font-size: 0.85em;
-  color: #c8d4dc;
-  line-height: 1.6;
-}
-
-.method-block em {
-  font-style: italic;
-  color: #E0FFFF;
-}
-
 .notes {
   margin-bottom: 1.6em;
   padding: 1rem 1.4rem;
