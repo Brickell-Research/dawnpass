@@ -1,0 +1,25 @@
+public/index.html
+  cecd0320e421cda8 314-321,339,350,354-433,435-445,449-461,463,466,479,482,487,490,495,497-498,506-521
+public/index.template.html
+  cecd0320e421cda8 314-321,339,350,354-433,435-445,449-461,463,466,479,482,487,490,495,497-498,506-521
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "555860818bb61a15e11514e3682da85d56a94ffa",
+  "prompts": {
+    "cecd0320e421cda8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "348a5c78-5a64-4dfd-8c55-8d7e84bd5309",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "robertDurst",
+      "messages": [],
+      "total_additions": 280,
+      "total_deletions": 68,
+      "accepted_lines": 280,
+      "overriden_lines": 0
+    }
+  }
+}
