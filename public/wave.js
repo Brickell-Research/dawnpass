@@ -93,14 +93,26 @@ async function load() {
 
 function render(data) {
   // JSON shape: { "buoy_<station>": {...}, "tide_<station>": {...}, "marine_<spot>": {...}, ... }
+  // All sources are optional — buoy goes silent for hours at a time, NOAA
+  // tides 503s, marine occasionally fails. Render whatever we have, label
+  // missing pieces with "—", and only short-circuit if there's literally
+  // no data at all (no `wave` block AND no score AND no tide).
   const buoyKey   = Object.keys(data).find(k => k.startsWith('buoy_'));
   const tideKey   = Object.keys(data).find(k => k.startsWith('tide_'));
   const marineKey = Object.keys(data).find(k => k.startsWith('marine_'));
-  const r      = buoyKey   ? data[buoyKey]   : null;
-  const tide   = tideKey   ? data[tideKey]   : null;
-  const marine = marineKey ? data[marineKey] : null;
-  const w      = data.wave ?? null;  // pre-computed by wave_spec.gleam
-  if (!r) return setStatus('no buoy reading');
+  const windKey   = Object.keys(data).find(k => k.startsWith('wind_'));
+  const r         = buoyKey   ? data[buoyKey]   : null;
+  const tide      = tideKey   ? data[tideKey]   : null;
+  const marine    = marineKey ? data[marineKey] : null;
+  const windBlock = windKey   ? data[windKey]   : null;
+  const w         = data.wave ?? null;  // pre-computed by wave_spec.gleam
+  const scoreBlock = data.score ?? null;
+
+  // Wind: prefer the buoy's observed values, fall back to the open-meteo
+  // wind block's "now" values (top-level wind_speed_ms / wind_direction_deg
+  // are the model's current step at the spot lat/lon).
+  const windSpeedMs = r?.wind_speed_ms ?? windBlock?.wind_speed_ms ?? null;
+  const windDirDeg  = r?.wind_direction_deg ?? windBlock?.wind_direction_deg ?? null;
 
   els.wave.textContent = w?.height_m != null
     ? `${(w.height_m * FEET_PER_M).toFixed(1)} ft`
@@ -110,11 +122,11 @@ function render(data) {
     ? `${w.period_s.toFixed(0)} s`
     : '—';
 
-  els.wind.textContent = formatWind(r.wind_speed_ms, r.wind_direction_deg);
+  els.wind.textContent = formatWind(windSpeedMs, windDirDeg);
 
   // Wind quality badge — offshore (clean) / onshore (blown out) / sideshore.
-  if (r.wind_direction_deg != null) {
-    const q = windQuality(r.wind_direction_deg, PAG_BEACH_NORMAL_DEG);
+  if (windDirDeg != null) {
+    const q = windQuality(windDirDeg, PAG_BEACH_NORMAL_DEG);
     els.windTag.textContent = q;
     els.windTag.setAttribute('data-quality', q);
   } else {
@@ -125,10 +137,9 @@ function render(data) {
   renderTide(els.tide, tide);
 
   // === Live map directional indicators (notebook chart) ===
-  // Swell arrows + label rotate with the wave block's direction (which uses
-  // the same source-precedence as the wave height/period: buoy first, marine
-  // fallback). Wind arrow + label rotate with the buoy's wind direction.
-  // Both arrows point TOWARD the source (FROM bearing).
+  // Swell arrows + label use w.direction_deg (already source-resolved by
+  // wave_spec.gleam). Wind arrow uses the same source-precedence as the
+  // wind metric above. Both arrows point TOWARD the source (FROM bearing).
   const swellDir = w?.direction_deg ?? null;
   if (swellDir != null) {
     els.mapSwell.textContent = cardinal(swellDir);
@@ -138,18 +149,13 @@ function render(data) {
     els.waveTag.textContent = '';
   }
 
-  if (r.wind_direction_deg != null) {
-    els.mapWind.textContent = cardinal(r.wind_direction_deg);
-    rotateMapArrow(els.mapWindArrow, r.wind_direction_deg, WIND_NATURAL_DEG, 170, 100);
+  if (windDirDeg != null) {
+    els.mapWind.textContent = cardinal(windDirDeg);
+    rotateMapArrow(els.mapWindArrow, windDirDeg, WIND_NATURAL_DEG, 170, 100);
   }
 
-  // Map temps — air from Open-Meteo Forecast (coastal at 2m, surfer-relevant),
-  // water from NDBC buoy 42036 (offshore but close enough in the Gulf).
-  const windKey = Object.keys(data).find(k => k.startsWith('wind_'));
-  const windBlock = windKey ? data[windKey] : null;
-  // Null-guard the temp elements: if the SSR template ever drifts and these
-  // glyphs go missing, we don't want one missing element to throw and take
-  // down the whole render() (which would surface as "fetch failed").
+  // Map temps — air from open-meteo, water from NDBC buoy. Either can be
+  // null (buoy goes dark for hours; open-meteo less often).
   if (els.mapAirTemp) {
     els.mapAirTemp.textContent =
       windBlock?.air_temp_c != null
@@ -158,29 +164,34 @@ function render(data) {
   }
   if (els.mapWaterTemp) {
     els.mapWaterTemp.textContent =
-      r.wtmp_c != null
+      r?.wtmp_c != null
         ? `${celsiusToF(r.wtmp_c).toFixed(0)}°F`
         : '—';
   }
 
   // 5-day outlook strip — wave + tide highs/lows + per-day rideable hours.
-  renderOutlook(els.outlookGrid, marine?.forecast ?? [], tide, data.score?.forecast ?? []);
+  renderOutlook(els.outlookGrid, marine?.forecast ?? [], tide, scoreBlock?.forecast ?? []);
 
   // Recommendation engine output (computed by src/dawnpass/score/orchestrator.gleam):
   //   data.score.now            — current Conditions score (0-10 + verdict + sub-scores + vetoes)
   //   data.score.windows        — hysteresis-detected rideable windows in the next 5 days
   //   data.score.best_overall   — highest-composite window across the horizon
-  const scoreBlock = data.score ?? null;
   renderNowScore(scoreBlock?.now);
   renderNextWindow(scoreBlock?.best_overall);
 
-  // Spot identity now lives in the now-map illustration; no text pill.
-  els.updated.textContent = r.observed_at_utc
-    ? `updated ${formatTimestamp(r.observed_at_utc)}`
+  // "updated …" stamp uses the freshest available source timestamp,
+  // preferring buoy → marine → wind → tide. Stale check uses the same.
+  const observedIso =
+    r?.observed_at_utc
+    ?? marine?.observed_at_utc
+    ?? windBlock?.observed_at_utc
+    ?? tide?.observed_at_utc
+    ?? null;
+  els.updated.textContent = observedIso
+    ? `updated ${formatTimestamp(observedIso)}`
     : 'no timestamp';
 
-  // Buoy older than STALE_THRESHOLD_MS (or unknown) marks the card stale.
-  const obs = r.observed_at_utc ? new Date(r.observed_at_utc) : null;
+  const obs = observedIso ? new Date(observedIso) : null;
   const stale = !obs || isNaN(obs.getTime())
     || (Date.now() - obs.getTime()) > STALE_THRESHOLD_MS;
   if (stale) {
