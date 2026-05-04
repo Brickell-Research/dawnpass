@@ -170,36 +170,45 @@ fn build_spot_entry(
     )
 
   let wave_layers = wave_spec.compute_layers(buoy_opt, marine_opt, wind_opt)
-  let score_json =
-    score_orch.build_block(
-      buoy_opt,
-      tide_opt,
-      marine_opt,
-      wind_opt,
-      spot.spot_config,
-    )
+  let spot_json =
+    encode_spot_block(spot, buoy_opt, tide_opt, marine_opt, wind_opt)
 
-  let marine_json = case marine_opt {
+  SpotEntry(slug: spot.slug, json: spot_json, wave_layers:)
+}
+
+/// Pure encoder: given pre-fetched source readings + a spot config, produce
+/// the JSON object that lands under `spots.<slug>` in latest.json. Split
+/// from `build_spot_entry` so tests can hit it with hand-built records
+/// without making any HTTP calls.
+pub fn encode_spot_block(
+  spot: Spot,
+  buoy: Option(ndbc.BuoyReading),
+  tide: Option(noaa_tides.TideReading),
+  marine: Option(open_meteo_marine.MarineReading),
+  wind: Option(open_meteo_forecast.WindForecast),
+) -> json.Json {
+  let wave_layers = wave_spec.compute_layers(buoy, marine, wind)
+  let score_json =
+    score_orch.build_block(buoy, tide, marine, wind, spot.spot_config)
+
+  let marine_json = case marine {
     Some(r) -> open_meteo_marine.encode(r)
     None -> json.null()
   }
-  let wind_json = case wind_opt {
+  let wind_json = case wind {
     Some(r) -> open_meteo_forecast.encode(r)
     None -> json.null()
   }
 
-  let spot_json =
-    json.object([
-      #("name", json.string(spot.name)),
-      #("latitude", json.float(spot.latitude)),
-      #("longitude", json.float(spot.longitude)),
-      #("marine", marine_json),
-      #("wind", wind_json),
-      #("wave", wave_spec.encode(wave_layers)),
-      #("score", score_json),
-    ])
-
-  SpotEntry(slug: spot.slug, json: spot_json, wave_layers:)
+  json.object([
+    #("name", json.string(spot.name)),
+    #("latitude", json.float(spot.latitude)),
+    #("longitude", json.float(spot.longitude)),
+    #("marine", marine_json),
+    #("wind", wind_json),
+    #("wave", wave_spec.encode(wave_layers)),
+    #("score", score_json),
+  ])
 }
 
 /// SSR substitution needs a single set of WaveLayers. Use the first spot's
