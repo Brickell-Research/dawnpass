@@ -1,0 +1,25 @@
+src/dawnpass.gleam
+  cecd0320e421cda8 3,32-76,163-165
+src/dawnpass/score/spots.gleam
+  cecd0320e421cda8 109-203
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "a306c301730acc77e299840979b248289e1da591",
+  "prompts": {
+    "cecd0320e421cda8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "348a5c78-5a64-4dfd-8c55-8d7e84bd5309",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "robertDurst",
+      "messages": [],
+      "total_additions": 141,
+      "total_deletions": 0,
+      "accepted_lines": 141,
+      "overriden_lines": 0
+    }
+  }
+}

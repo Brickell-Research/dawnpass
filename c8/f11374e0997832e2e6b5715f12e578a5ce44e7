@@ -1,0 +1,23 @@
+src/dawnpass.gleam
+  cecd0320e421cda8 3,32-76,136-173,180-181,183-185,187-191,201-217,252,256,261-263,274,278,283-284
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "c8f11374e0997832e2e6b5715f12e578a5ce44e7",
+  "prompts": {
+    "cecd0320e421cda8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "348a5c78-5a64-4dfd-8c55-8d7e84bd5309",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "robertDurst",
+      "messages": [],
+      "total_additions": 109,
+      "total_deletions": 52,
+      "accepted_lines": 92,
+      "overriden_lines": 0
+    }
+  }
+}
