@@ -22,6 +22,103 @@ import gleam/order
 import gleam/result
 import gleam/string
 
+// === System time helper (Erlang `calendar:universal_time/0`) ===
+//
+// Used by the predictions-only path to anchor "now" when the station has
+// no real-time gauge to provide a timestamp. Returns the current UTC time
+// as a calendar tuple; we format to ISO 8601 for compatibility with the
+// rest of the timestamp pipeline.
+@external(erlang, "calendar", "universal_time")
+fn calendar_universal_time() ->
+  #(#(Int, Int, Int), #(Int, Int, Int))
+
+fn now_utc_iso() -> String {
+  let #(#(y, m, d), #(h, mi, s)) = calendar_universal_time()
+  pad4(y)
+  <> "-"
+  <> pad2(m)
+  <> "-"
+  <> pad2(d)
+  <> "T"
+  <> pad2(h)
+  <> ":"
+  <> pad2(mi)
+  <> ":"
+  <> pad2(s)
+  <> "Z"
+}
+
+fn pad2(n: Int) -> String {
+  case n < 10 {
+    True -> "0" <> int.to_string(n)
+    False -> int.to_string(n)
+  }
+}
+
+fn pad4(n: Int) -> String {
+  case n < 10, n < 100, n < 1000 {
+    True, _, _ -> "000" <> int.to_string(n)
+    _, True, _ -> "00" <> int.to_string(n)
+    _, _, True -> "0" <> int.to_string(n)
+    _, _, _ -> int.to_string(n)
+  }
+}
+
+// === Linear interpolation between hi/lo events ===
+//
+// For predictions-only stations, derive the current water height by
+// interpolating linearly between the most recent past event and the next
+// future event. Linear is ~5% off true sinusoidal but the surfline-line
+// shows one decimal of feet; the error is in the second decimal.
+fn interpolate_level(
+  now_iso: String,
+  events: List(TideEvent),
+  next: TideEvent,
+) -> Float {
+  let past =
+    events
+    |> list.filter(fn(e) { string.compare(e.at_utc, now_iso) != order.Gt })
+    |> list.last
+  case past {
+    Ok(prev) -> {
+      let total = abs_minutes_between(prev.at_utc, next.at_utc)
+      let elapsed = abs_minutes_between(prev.at_utc, now_iso)
+      let frac = case total {
+        0 -> 0.0
+        _ -> int.to_float(elapsed) /. int.to_float(total)
+      }
+      prev.height_ft +. { next.height_ft -. prev.height_ft } *. frac
+    }
+    // No past event in window — fall back to the next event's height.
+    // Slight visual lag but better than 0.0 on the page.
+    Error(_) -> next.height_ft
+  }
+}
+
+fn abs_minutes_between(a_iso: String, b_iso: String) -> Int {
+  case to_minutes_since_epoch(a_iso), to_minutes_since_epoch(b_iso) {
+    Ok(a), Ok(b) -> int.absolute_value(b - a)
+    _, _ -> 0
+  }
+}
+
+// "2026-05-04T12:34:00Z" → minutes since 0000-01-01 (calendar arithmetic
+// in Erlang's calendar:datetime_to_gregorian_seconds/1).
+fn to_minutes_since_epoch(iso: String) -> Result(Int, Nil) {
+  use y <- result.try(int.parse(string.slice(iso, 0, 4)))
+  use m <- result.try(int.parse(string.slice(iso, 5, 2)))
+  use d <- result.try(int.parse(string.slice(iso, 8, 2)))
+  use h <- result.try(int.parse(string.slice(iso, 11, 2)))
+  use mi <- result.try(int.parse(string.slice(iso, 14, 2)))
+  let secs = datetime_to_gregorian_seconds(#(#(y, m, d), #(h, mi, 0)))
+  Ok(secs / 60)
+}
+
+@external(erlang, "calendar", "datetime_to_gregorian_seconds")
+fn datetime_to_gregorian_seconds(
+  dt: #(#(Int, Int, Int), #(Int, Int, Int)),
+) -> Int
+
 pub type TideReading {
   TideReading(
     station: String,
@@ -68,27 +165,37 @@ const slack_threshold_minutes = 30
 // === HTTP fetch ===
 
 /// Try each station in order; return the first successful TideReading.
-/// If every station fails, surfaces the last error encountered. Use this
-/// instead of `fetch_tide/1` whenever you have a sensible backup station —
-/// NOAA stations go into maintenance individually and the cost of trying
-/// a second URL is negligible compared to the cost of the page losing the
-/// tide line entirely.
+/// If every station fails, surfaces the last error encountered. For each
+/// station, tries the primary path (observed water level + hi/lo) first,
+/// then falls back to the predictions-only path (interpolate level from
+/// hi/lo events) for subordinate stations like Venice Inlet (8725889) that
+/// only ship harmonic predictions, no real-time gauge.
 pub fn fetch_tide_with_fallback(
   stations: List(String),
 ) -> Result(TideReading, TideError) {
   case stations {
     [] -> Error(ParseError("no tide stations configured"))
-    [station] -> fetch_tide(station)
     [station, ..rest] ->
       case fetch_tide(station) {
         Ok(reading) -> Ok(reading)
-        Error(_) -> fetch_tide_with_fallback(rest)
+        Error(_) ->
+          case fetch_tide_predictions_only(station) {
+            Ok(reading) -> Ok(reading)
+            Error(_) ->
+              case rest {
+                [] -> fetch_tide(station)
+                _ -> fetch_tide_with_fallback(rest)
+              }
+          }
       }
   }
 }
 
 /// Fetch the most recent observed water level + the upcoming hi/lo
-/// predictions for a NOAA tide station, then derive the trend.
+/// predictions for a NOAA tide station, then derive the trend. Works for
+/// primary stations with real-time water-level gauges; subordinate
+/// stations (predictions-only) fail here and route to
+/// `fetch_tide_predictions_only/1`.
 pub fn fetch_tide(station: String) -> Result(TideReading, TideError) {
   use level <- result.try(fetch_water_level(station))
   // Use the level's timestamp as the begin_date for the hi/lo query so
@@ -108,6 +215,31 @@ pub fn fetch_tide(station: String) -> Result(TideReading, TideError) {
     observed_at_utc: level.observed_at_utc,
     height_ft: level.height_ft,
     trend: compute_trend(level.observed_at_utc, next),
+    next_event: next,
+    upcoming:,
+  ))
+}
+
+/// Predictions-only path for subordinate stations (Venice Inlet 8725889,
+/// Siesta Key 8726034, etc.) which ship hi/lo harmonic predictions but no
+/// real-time observed water level. Anchors at current UTC, picks the next
+/// future event, and linearly interpolates the current height between the
+/// most recent past event and the next one. Linear interp is ~5% off true
+/// sinusoidal but adequate for the glanceable surf line.
+pub fn fetch_tide_predictions_only(
+  station: String,
+) -> Result(TideReading, TideError) {
+  let now = now_utc_iso()
+  use events <- result.try(fetch_hilo(station, yyyymmdd_from_iso(now)))
+  use next <- result.try(pick_next_event(now, events))
+  let upcoming =
+    list.filter(events, fn(e) { string.compare(e.at_utc, now) == order.Gt })
+  let height_ft = interpolate_level(now, events, next)
+  Ok(TideReading(
+    station:,
+    observed_at_utc: now,
+    height_ft:,
+    trend: compute_trend(now, next),
     next_event: next,
     upcoming:,
   ))

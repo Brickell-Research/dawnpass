@@ -15,26 +15,16 @@ import gleam/string
 
 const buoy_station = "42036"
 
-// Tide station list, tried in order. 8726724 (Clearwater Beach) is the
-// Gulf-facing primary, ~20mi N of PAG. 8726520 (St Petersburg, Tampa Bay)
-// is the fallback — bay tides lag the open Gulf by ~30-90min through the
-// Egmont Key inlet so timing on next-event times will be slightly off
-// when the fallback fires, but having a tide line at all beats "—" when
-// 8726724 is in maintenance. Future: derive PAG-specific offsets from a
-// subordinate station once spots/<spot>.json supports it.
-const tide_stations = ["8726724", "8726520"]
-
-// Pass-a-Grille (decimal degrees). Hardcoded until spot configs land.
+// Pass-a-Grille (decimal degrees).
 const pag_lat = 27.685
 
 const pag_lon = -82.738
 
 // Venice South Jetty (decimal degrees). Same offshore swell region as PAG
 // but ~85min south by car; the rock jetty produces a meaningfully different
-// wave shape on the same model inputs. Shares NDBC 42036 (regional buoy)
-// and the PAG tide stations for v1 — the Venice tide gauge sits closer
-// (likely 8728690 or similar) and Venice has a ~30-60min phase offset from
-// Clearwater Beach. Per-spot tide source is queued as O4.
+// wave shape on the same model inputs. Shares NDBC 42036 (regional buoy);
+// has its own NOAA tide stations because Venice tides phase ~30-60min off
+// Clearwater Beach.
 const venice_lat = 27.073
 
 const venice_lon = -82.456
@@ -43,6 +33,9 @@ const venice_lon = -82.456
 /// short JSON key (e.g. "pag", "venice_south") under which this spot's
 /// blocks land in latest.json. `spot_config` is the scoring config (factor
 /// breakpoints, verdicts, windows) from src/dawnpass/score/spots.gleam.
+/// `tide_stations` is the per-spot fallback chain — each spot's tide is
+/// fetched independently because Gulf-coast tides phase by tens of minutes
+/// across even ~50mi of latitude.
 pub type Spot {
   Spot(
     slug: String,
@@ -50,6 +43,7 @@ pub type Spot {
     latitude: Float,
     longitude: Float,
     spot_config: SpotConfig,
+    tide_stations: List(String),
   )
 }
 
@@ -59,6 +53,11 @@ const pag_spot = Spot(
   latitude: pag_lat,
   longitude: pag_lon,
   spot_config: spots.pag,
+  // 8726724 (Clearwater Beach) — Gulf-facing primary, ~20mi N of PAG.
+  // 8726520 (St Petersburg, Tampa Bay) — fallback; bay tides lag the open
+  //   Gulf by ~30-90min through Egmont Key inlet so next-event times are
+  //   slightly off when the fallback fires.
+  tide_stations: ["8726724", "8726520"],
 )
 
 const venice_spot = Spot(
@@ -67,6 +66,12 @@ const venice_spot = Spot(
   latitude: venice_lat,
   longitude: venice_lon,
   spot_config: spots.venice_south,
+  // 8725889 (Venice Inlet, inside) — sits at Casey Pass mouth, ~50yds from
+  //   the south jetty rocks. Subordinate to 8726520 in NOAA's harmonic
+  //   reference but the predictions are Venice-specific.
+  // 8726034 (Siesta Key, Big Sarasota Pass) — Gulf-facing inlet ~12mi N
+  //   with its own harmonic data; covers Venice if 8725889 is in maintenance.
+  tide_stations: ["8725889", "8726034"],
 )
 
 // Order matters: this is also the JSON serialisation order under
@@ -83,22 +88,19 @@ const index_output_path = "public/index.html"
 pub fn main() -> Nil {
   io.println("dawnpass · the watch is up")
 
-  // Shared sources: NDBC buoy + NOAA tide carry regional signal that's
-  // identical for any spot in the eastern Gulf within ~100mi. Fetched once.
+  // Shared source: NDBC buoy carries regional swell signal that's identical
+  // for any spot in the eastern Gulf within ~100mi. Fetched once.
   let buoy_opt = log_buoy(ndbc.fetch_buoy(buoy_station))
-  let tide_opt = log_tide(noaa_tides.fetch_tide_with_fallback(tide_stations))
 
-  // Per-spot fan-out: each spot fetches its own marine + wind at its lat/lon
-  // and computes its own wave layers + score. Output lands under spots.<slug>.
+  // Per-spot fan-out: each spot fetches its own tide + marine + wind at its
+  // lat/lon and computes its own wave layers + score. Output lands under
+  // spots.<slug>. Tide moved per-spot because Gulf-coast phase shifts
+  // matter at the timing precision the next-event line needs.
   let spot_entries =
-    list.map(spots_list, fn(s) { build_spot_entry(s, buoy_opt, tide_opt) })
+    list.map(spots_list, fn(s) { build_spot_entry(s, buoy_opt) })
 
   let buoy_block = case buoy_opt {
     Some(r) -> [#("buoy_" <> r.station, ndbc.encode(r))]
-    None -> []
-  }
-  let tide_block = case tide_opt {
-    Some(r) -> [#("tide_" <> r.station, noaa_tides.encode(r))]
     None -> []
   }
 
@@ -110,7 +112,7 @@ pub fn main() -> Nil {
   let spots_block = [#("spots", json.object(spots_pairs))]
 
   let blocks: List(#(String, json.Json)) =
-    list.flatten([buoy_block, tide_block, spots_block])
+    list.flatten([buoy_block, spots_block])
 
   case ingest.write_latest(blocks, to: data_path) {
     Ok(_) -> io.println("wrote " <> data_path)
@@ -150,8 +152,12 @@ type SpotEntry {
 fn build_spot_entry(
   spot: Spot,
   buoy_opt: Option(ndbc.BuoyReading),
-  tide_opt: Option(noaa_tides.TideReading),
 ) -> SpotEntry {
+  let tide_opt =
+    log_tide(
+      noaa_tides.fetch_tide_with_fallback(spot.tide_stations),
+      spot.slug,
+    )
   let marine_opt =
     log_marine(
       open_meteo_marine.fetch_marine(
@@ -191,6 +197,10 @@ pub fn encode_spot_block(
   let score_json =
     score_orch.build_block(buoy, tide, marine, wind, spot.spot_config)
 
+  let tide_json = case tide {
+    Some(r) -> noaa_tides.encode(r)
+    None -> json.null()
+  }
   let marine_json = case marine {
     Some(r) -> open_meteo_marine.encode(r)
     None -> json.null()
@@ -204,6 +214,7 @@ pub fn encode_spot_block(
     #("name", json.string(spot.name)),
     #("latitude", json.float(spot.latitude)),
     #("longitude", json.float(spot.longitude)),
+    #("tide", tide_json),
     #("marine", marine_json),
     #("wind", wind_json),
     #("wave", wave_spec.encode(wave_layers)),
@@ -242,15 +253,16 @@ fn log_buoy(
 
 fn log_tide(
   res: Result(noaa_tides.TideReading, noaa_tides.TideError),
+  slug: String,
 ) -> Option(noaa_tides.TideReading) {
   case res {
     Ok(r) -> {
-      io.println("tide " <> r.station <> " · " <> r.observed_at_utc)
+      io.println("tide " <> slug <> " · " <> r.station <> " · " <> r.observed_at_utc)
       io.println(string.inspect(r))
       Some(r)
     }
     Error(e) -> {
-      io.println("noaa fetch failed: " <> string.inspect(e))
+      io.println("noaa fetch (" <> slug <> ") failed: " <> string.inspect(e))
       None
     }
   }

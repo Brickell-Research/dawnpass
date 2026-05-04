@@ -10,9 +10,9 @@
 // in Gleam — this file is purely a renderer.
 //
 // JSON shape it expects:
-//   { "buoy_<station>": {...}, "tide_<station>": {...},
+//   { "buoy_<station>": {...},
 //     "spots": { "<slug>": { name, latitude, longitude,
-//                            marine, wind, wave, score }, ... } }
+//                            tide, marine, wind, wave, score }, ... } }
 //
 // Degrades gracefully: missing fields render "—"; missing spots in the
 // JSON leave their cards in their initial empty state.
@@ -127,26 +127,27 @@ function setStatusAll(msg) {
 }
 
 function render(data) {
-  // Shared sources at the top level. Per-spot blocks under data.spots.<slug>.
+  // Shared source at top level (buoy is regional). Per-spot blocks under
+  // data.spots.<slug> — including tide, since Gulf-coast tides phase by
+  // tens of minutes across even ~50mi of latitude.
   const buoyKey = Object.keys(data).find(k => k.startsWith('buoy_'));
-  const tideKey = Object.keys(data).find(k => k.startsWith('tide_'));
   const r       = buoyKey ? data[buoyKey] : null;
-  const tide    = tideKey ? data[tideKey] : null;
   const spotsData = data.spots ?? {};
 
   for (const s of spots) {
     const spotData = spotsData[s.slug];
     if (spotData) {
-      renderSpot(s, spotData, r, tide);
+      renderSpot(s, spotData, r);
     }
   }
 
   startMotion();
 }
 
-function renderSpot(s, spotData, r, tide) {
+function renderSpot(s, spotData, r) {
   const els = s.els;
   const w         = spotData.wave ?? null;
+  const tide      = spotData.tide ?? null;
   const marine    = spotData.marine ?? null;
   const windBlock = spotData.wind ?? null;
   const scoreBlock = spotData.score ?? null;

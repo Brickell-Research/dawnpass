@@ -23,6 +23,7 @@ const test_pag = Spot(
   latitude: 27.685,
   longitude: -82.738,
   spot_config: spots.pag,
+  tide_stations: ["8726724", "8726520"],
 )
 
 const test_venice = Spot(
@@ -31,6 +32,7 @@ const test_venice = Spot(
   latitude: 27.073,
   longitude: -82.456,
   spot_config: spots.venice_south,
+  tide_stations: ["8725889", "8726034"],
 )
 
 fn test_buoy() -> ndbc.BuoyReading {
