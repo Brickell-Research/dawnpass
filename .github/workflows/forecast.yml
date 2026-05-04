@@ -61,7 +61,21 @@ jobs:
           git add public/data public/index.html
           if git diff --cached --quiet; then
             echo "No changes to commit."
-          else
-            git commit -m "refresh: $(date -u +%FT%H:%MZ)"
-            git push
+            exit 0
           fi
+          git commit -m "refresh: $(date -u +%FT%H:%MZ)"
+          # Race-safe push: a human commit can land between checkout and push,
+          # which makes the bot's main non-fast-forward and the push fails.
+          # Rebase our refresh commit onto the new remote and retry. The bot
+          # only touches public/data and public/index.html, so conflicts are
+          # implausible — but if a rebase ever fails, abort and surface it.
+          for attempt in 1 2 3; do
+            if git push origin main; then
+              echo "Pushed on attempt $attempt"
+              exit 0
+            fi
+            echo "Push rejected on attempt $attempt — rebasing onto remote"
+            git pull --rebase --autostash origin main || { git rebase --abort; exit 1; }
+          done
+          echo "Failed to push refresh after 3 attempts"
+          exit 1

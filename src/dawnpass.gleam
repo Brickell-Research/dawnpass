@@ -68,7 +68,7 @@ pub fn main() -> Nil {
   // Computed wave layer block — derived from buoy + marine via wave_spec.
   // Always emitted (Silent when both sources are wave-null) so the renderer
   // can rely on `data.wave` being present.
-  let wave_layers = wave_spec.compute_layers(buoy_opt, marine_opt)
+  let wave_layers = wave_spec.compute_layers(buoy_opt, marine_opt, wind_opt)
   let wave_block = [#("wave", wave_spec.encode(wave_layers))]
 
   // Scoring + window detection. Always emitted (the page can read it

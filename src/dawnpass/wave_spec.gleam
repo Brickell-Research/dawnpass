@@ -18,6 +18,7 @@
 //// the named constants below.
 
 import dawnpass/sources/ndbc
+import dawnpass/sources/open_meteo_forecast
 import dawnpass/sources/open_meteo_marine
 import gleam/float
 import gleam/int
@@ -105,9 +106,10 @@ const silent_mean_lambda: Float = 200.0
 pub fn compute_layers(
   buoy: Option(ndbc.BuoyReading),
   marine: Option(open_meteo_marine.MarineReading),
+  wind: Option(open_meteo_forecast.WindForecast),
 ) -> WaveLayers {
   let direction = pick_direction(buoy, marine)
-  let chop = chop_layer(buoy)
+  let chop = chop_layer(buoy, wind)
 
   case pick_source(buoy, marine) {
     PickedBuoy(b, hs, tp) -> {
@@ -180,20 +182,42 @@ fn stroke_layer(
   )
 }
 
-fn chop_layer(buoy: Option(ndbc.BuoyReading)) -> Layer {
-  let amp = case buoy {
-    Some(b) ->
-      case b.wind_speed_ms {
-        Some(ws) ->
-          case ws >. chop_wind_min_ms {
-            True -> clamp(ws *. chop_amp_mult, 0.0, chop_amp_max)
-            False -> 0.0
-          }
-        None -> 0.0
+// Chop is wind-driven ripple. Source-precedence mirrors the renderer's
+// wind metric: prefer the buoy's observed wind (more local), fall back to
+// the open-meteo wind block when the buoy is silent — which happens often
+// enough that without the fallback the pink ripple disappears whenever
+// NDBC blinks. Only zero-amp when no source has any wind reading.
+fn chop_layer(
+  buoy: Option(ndbc.BuoyReading),
+  wind: Option(open_meteo_forecast.WindForecast),
+) -> Layer {
+  let amp = case pick_wind_ms(buoy, wind) {
+    Some(ws) ->
+      case ws >. chop_wind_min_ms {
+        True -> clamp(ws *. chop_amp_mult, 0.0, chop_amp_max)
+        False -> 0.0
       }
     None -> 0.0
   }
   Layer(amp:, lambda: chop_lambda, period_s: Some(chop_period_s))
+}
+
+fn pick_wind_ms(
+  buoy: Option(ndbc.BuoyReading),
+  wind: Option(open_meteo_forecast.WindForecast),
+) -> Option(Float) {
+  let buoy_ws = case buoy {
+    Some(b) -> b.wind_speed_ms
+    None -> None
+  }
+  case buoy_ws {
+    Some(_) -> buoy_ws
+    None ->
+      case wind {
+        Some(w) -> w.wind_speed_ms
+        None -> None
+      }
+  }
 }
 
 // === Source picking ===
