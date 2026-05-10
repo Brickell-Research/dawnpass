@@ -55,11 +55,15 @@ const pag_spot = Spot(
   latitude: pag_lat,
   longitude: pag_lon,
   spot_config: spots.pag,
-  // 8726724 (Clearwater Beach) — Gulf-facing primary, ~20mi N of PAG.
-  // 8726520 (St Petersburg, Tampa Bay) — fallback; bay tides lag the open
-  //   Gulf by ~30-90min through Egmont Key inlet so next-event times are
-  //   slightly off when the fallback fires.
-  tide_stations: ["8726724", "8726520"],
+  // 8726347 (Pass-a-Grille Beach, FL) — primary; subordinate harmonic-only
+  //   station literally at the spot (sensor decommissioned 1991, harmonic
+  //   predictions still publish). Routes through fetch_tide_predictions_only
+  //   because water_level returns "no data" for subordinate stations.
+  //   Matches Surfline's PAG tide source.
+  // 8726724 (Clearwater Beach) — fallback; Gulf-facing primary with a live
+  //   gauge, ~20mi N. Leads PAG by ~50min and runs ~0.5ft taller, so the
+  //   fallback is degraded but better than nothing.
+  tide_stations: ["8726347", "8726724"],
 )
 
 const venice_spot = Spot(
