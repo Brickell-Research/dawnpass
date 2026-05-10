@@ -7,10 +7,12 @@ import dawnpass/sources/noaa_tides
 import dawnpass/sources/open_meteo_forecast
 import dawnpass/sources/open_meteo_marine
 import dawnpass/wave_spec
+import envoy
 import gleam/io
 import gleam/json
 import gleam/list
 import gleam/option.{type Option, None, Some}
+import gleam/result
 import gleam/string
 
 const buoy_station = "42036"
@@ -126,9 +128,15 @@ pub fn main() -> Nil {
   // and the daily-ritual primary). Venice's wave SVG paints from JS at
   // render time once data.spots.venice_south.wave lands.
   let canonical_wave = canonical_wave_layers(spot_entries, buoy_opt)
+  // SITE_VERSION is the date of the last non-`refresh:` commit, computed
+  // by the workflows that invoke `gleam run`. Locally (no env var) it
+  // shows "dev" so a deployed footer can never be confused with a sandbox
+  // rebuild.
+  let site_version = result.unwrap(envoy.get("SITE_VERSION"), "dev")
   case
     ingest.write_index(
       canonical_wave,
+      version: site_version,
       template: index_template_path,
       output: index_output_path,
     )
@@ -142,11 +150,7 @@ pub fn main() -> Nil {
 /// that lands under `spots.<slug>` and the computed WaveLayers (kept around
 /// so PAG's layers can drive the SSR substitution).
 type SpotEntry {
-  SpotEntry(
-    slug: String,
-    json: json.Json,
-    wave_layers: wave_spec.WaveLayers,
-  )
+  SpotEntry(slug: String, json: json.Json, wave_layers: wave_spec.WaveLayers)
 }
 
 fn build_spot_entry(
@@ -154,10 +158,7 @@ fn build_spot_entry(
   buoy_opt: Option(ndbc.BuoyReading),
 ) -> SpotEntry {
   let tide_opt =
-    log_tide(
-      noaa_tides.fetch_tide_with_fallback(spot.tide_stations),
-      spot.slug,
-    )
+    log_tide(noaa_tides.fetch_tide_with_fallback(spot.tide_stations), spot.slug)
   let marine_opt =
     log_marine(
       open_meteo_marine.fetch_marine(
@@ -257,7 +258,9 @@ fn log_tide(
 ) -> Option(noaa_tides.TideReading) {
   case res {
     Ok(r) -> {
-      io.println("tide " <> slug <> " · " <> r.station <> " · " <> r.observed_at_utc)
+      io.println(
+        "tide " <> slug <> " · " <> r.station <> " · " <> r.observed_at_utc,
+      )
       io.println(string.inspect(r))
       Some(r)
     }
@@ -301,7 +304,9 @@ fn log_wind(
     }
     Error(e) -> {
       io.println(
-        "open-meteo forecast (wind, " <> slug <> ") failed: "
+        "open-meteo forecast (wind, "
+        <> slug
+        <> ") failed: "
         <> string.inspect(e),
       )
       None

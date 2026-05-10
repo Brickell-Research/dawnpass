@@ -40,12 +40,13 @@ pub fn write_latest(
 /// Render the three wave-layer SVG paths at phase=0 and substitute them
 /// into the index template, producing the deployed index.html.
 ///
-/// Placeholders:  {{WAVE_CHOP_D}}  {{WAVE_MEAN_D}}  {{WAVE_SWELL_D}}
+/// Placeholders:  {{WAVE_CHOP_D}}  {{WAVE_MEAN_D}}  {{WAVE_SWELL_D}}  {{SITE_VERSION}}
 ///
 /// Byte-equivalence with public/wave.js drawLayer is enforced by snapshot
 /// tests against captured JS fixtures (test/wave_spec_test.gleam).
 pub fn write_index(
   layers: WaveLayers,
+  version version: String,
   template template_path: String,
   output output_path: String,
 ) -> Result(Nil, IngestError) {
@@ -63,6 +64,7 @@ pub fn write_index(
     |> string.replace(each: "{{WAVE_CHOP_D}}", with: chop_d)
     |> string.replace(each: "{{WAVE_MEAN_D}}", with: mean_d)
     |> string.replace(each: "{{WAVE_SWELL_D}}", with: swell_d)
+    |> string.replace(each: "{{SITE_VERSION}}", with: version)
 
   simplifile.write(to: output_path, contents: body)
   |> result.map_error(WriteError)

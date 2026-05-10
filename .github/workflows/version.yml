@@ -1,0 +1,95 @@
+name: version
+
+# Bump SITE_VERSION (the date in the footer) immediately when a meaningful
+# source change lands on main, so a human push doesn't have to wait up to
+# 30min for the next `forecast` cron tick to refresh the footer.
+#
+# Mechanism: re-run `gleam run` with SITE_VERSION = date of the last
+# non-`refresh:` commit (which is the commit that just triggered this
+# workflow). Commits the regenerated public/index.html back as
+# `dawnpass-bot`, identical pattern to forecast.yml.
+#
+# Loop prevention:
+#   - paths-ignore excludes the bot's own outputs (public/data, index.html)
+#     so the commit-back can't re-trigger this workflow
+#   - shared `group: refresh-or-version` concurrency with forecast.yml
+#     serializes them so they never push concurrently
+#   - if the regenerated index.html is byte-identical (e.g. human pushed
+#     a doc-only change that doesn't move SITE_VERSION), the commit step
+#     no-ops via `git diff --cached --quiet`
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'public/data/**'
+      - 'public/index.html'
+      - 'README.md'
+      - 'docs/**'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-or-version
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_TOKEN_ACTION }}
+          # Need full history so SITE_VERSION can find the most recent
+          # non-`refresh:` commit.
+          fetch-depth: 0
+
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: '28.5'
+          gleam-version: '1.16.0'
+
+      - name: Cache build
+        uses: actions/cache@v4
+        with:
+          path: |
+            build
+            ~/.cache/gleam
+          key: ${{ runner.os }}-gleam-${{ hashFiles('manifest.toml') }}
+          restore-keys: ${{ runner.os }}-gleam-
+
+      - run: gleam deps download
+      - run: gleam build
+
+      - name: Compute SITE_VERSION
+        run: |
+          v=$(git log --grep='^refresh:' --invert-grep --format='%cs' -1)
+          echo "SITE_VERSION=${v:-dev}" >> "$GITHUB_ENV"
+          echo "computed SITE_VERSION=${v:-dev}"
+
+      - run: gleam run
+
+      - name: Commit version bump
+        run: |
+          git config user.name 'dawnpass-bot'
+          git config user.email 'bot@brickellresearch.org'
+          git add public/data public/index.html
+          if git diff --cached --quiet; then
+            echo "No changes to commit (version already current)."
+            exit 0
+          fi
+          git commit -m "refresh: $(date -u +%FT%H:%MZ)"
+          # Same race-safe push loop as forecast.yml: another commit can
+          # land between checkout and push, making the bot's main
+          # non-fast-forward. Rebase and retry.
+          for attempt in 1 2 3; do
+            if git push origin main; then
+              echo "Pushed on attempt $attempt"
+              exit 0
+            fi
+            echo "Push rejected on attempt $attempt — rebasing onto remote"
+            git pull --rebase --autostash origin main || { git rebase --abort; exit 1; }
+          done
+          echo "Failed to push version bump after 3 attempts"
+          exit 1

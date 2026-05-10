@@ -31,6 +31,7 @@ packages = [
 
 [requirements]
 birdie = { version = ">= 2.0.0 and < 3.0.0" }
+envoy = { version = ">= 1.0.0 and < 2.0.0" }
 filepath = { version = ">= 1.0.0 and < 2.0.0" }
 gleam_http = { version = ">= 4.0.0 and < 5.0.0" }
 gleam_httpc = { version = ">= 5.0.0 and < 6.0.0" }
