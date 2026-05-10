@@ -152,9 +152,12 @@ function renderSpot(s, spotData, r) {
   const windBlock = spotData.wind ?? null;
   const scoreBlock = spotData.score ?? null;
 
-  // Wind: prefer buoy's observed values, fall back to per-spot wind block.
-  const windSpeedMs = r?.wind_speed_ms ?? windBlock?.wind_speed_ms ?? null;
-  const windDirDeg  = r?.wind_direction_deg ?? windBlock?.wind_direction_deg ?? null;
+  // Wind: prefer the per-spot Open-Meteo block (coastal 10m wind at the
+  // actual spot lat/lon). Buoy 42036 sits ~30 nm offshore in a different
+  // airmass — its wind is the wrong story for whether the break is clean
+  // vs. blown out. Fall back to buoy only if the spot block is missing.
+  const windSpeedMs = windBlock?.wind_speed_ms ?? r?.wind_speed_ms ?? null;
+  const windDirDeg  = windBlock?.wind_direction_deg ?? r?.wind_direction_deg ?? null;
 
   els.wave.textContent = w?.height_m != null
     ? `${(w.height_m * FEET_PER_M).toFixed(1)} ft`
