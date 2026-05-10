@@ -35,6 +35,12 @@ fn buoy(
     wind_speed_ms: ws,
     atmp_c: option.None,
     wtmp_c: option.None,
+    swell_height_m: option.None,
+    swell_period_s: option.None,
+    swell_direction: option.None,
+    wind_wave_height_m: option.None,
+    wind_wave_period_s: option.None,
+    wind_wave_direction: option.None,
   )
 }
 

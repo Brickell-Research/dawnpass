@@ -31,6 +31,23 @@ pub fn ndbc_42036_parse_test() {
   |> birdie.snap(title: "ndbc 42036 latest reading")
 }
 
+pub fn ndbc_42036_spec_parse_test() {
+  let assert Ok(spec) = ndbc.parse_spec_body(read_fixture("ndbc_42036.spec"))
+  spec
+  |> string.inspect
+  |> birdie.snap(title: "ndbc 42036 spec latest row")
+}
+
+pub fn ndbc_42036_merge_spec_test() {
+  let assert Ok(reading) =
+    ndbc.parse_realtime2_body("42036", read_fixture("ndbc_42036.txt"))
+  let assert Ok(spec) = ndbc.parse_spec_body(read_fixture("ndbc_42036.spec"))
+  ndbc.merge_spec(reading, spec)
+  |> ndbc.encode
+  |> json.to_string
+  |> birdie.snap(title: "ndbc 42036 merged with spec")
+}
+
 pub fn noaa_water_level_parse_test() {
   let assert Ok(level) =
     noaa_tides.parse_water_level(read_fixture("noaa_water_level_8726520.json"))

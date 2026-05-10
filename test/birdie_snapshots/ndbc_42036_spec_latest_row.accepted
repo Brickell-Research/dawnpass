@@ -1,0 +1,5 @@
+---
+version: 2.0.0
+title: ndbc 42036 spec latest row
+---
+BuoySpec("2026-05-10T19:40:00Z", Some(0.5), Some(0.4), Some(6.2), Some("S"), Some(0.3), Some(3.2), Some("N"), Some(4.1), Some(186))

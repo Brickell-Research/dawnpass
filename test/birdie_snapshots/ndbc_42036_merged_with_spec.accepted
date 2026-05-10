@@ -1,0 +1,5 @@
+---
+version: 2.0.0
+title: ndbc 42036 merged with spec
+---
+{"station":"42036","observed_at_utc":"2026-05-03T18:40:00Z","wave_height_m":1.5,"dominant_period_s":null,"avg_period_s":4.7,"mean_wave_direction_deg":11,"wind_direction_deg":30,"wind_speed_ms":7.0,"atmp_c":20.8,"wtmp_c":23.7,"swell_height_m":0.4,"swell_period_s":6.2,"swell_direction":"S","wind_wave_height_m":0.3,"wind_wave_period_s":3.2,"wind_wave_direction":"N"}

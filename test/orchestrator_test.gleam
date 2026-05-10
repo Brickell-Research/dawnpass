@@ -47,6 +47,12 @@ fn test_buoy() -> ndbc.BuoyReading {
     wind_speed_ms: Some(5.0),
     atmp_c: Some(22.0),
     wtmp_c: Some(24.0),
+    swell_height_m: None,
+    swell_period_s: None,
+    swell_direction: None,
+    wind_wave_height_m: None,
+    wind_wave_period_s: None,
+    wind_wave_direction: None,
   )
 }
 
