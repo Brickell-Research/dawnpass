@@ -1,0 +1,5 @@
+---
+version: 2.0.0
+title: today pag all sources silent
+---
+{"generated_at_utc":"","spot":{"slug":"pag","name":"Pass-a-Grille","latitude":27.685,"longitude":-82.738},"wave_ft":null,"period_s":null,"wind_kt":null,"wind_dir_deg":null,"tide":null,"score":{"overall":0.0,"rideable":false,"verdict":"skip"}}

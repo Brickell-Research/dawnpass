@@ -6,6 +6,7 @@ import dawnpass/sources/ndbc
 import dawnpass/sources/noaa_tides
 import dawnpass/sources/open_meteo_forecast
 import dawnpass/sources/open_meteo_marine
+import dawnpass/today
 import dawnpass/wave_spec
 import envoy
 import gleam/io
@@ -87,6 +88,8 @@ const spots_list: List(Spot) = [pag_spot, venice_spot]
 
 const data_path = "public/data/latest.json"
 
+const today_path = "public/api/today.json"
+
 const index_template_path = "public/index.template.html"
 
 const index_output_path = "public/index.html"
@@ -125,6 +128,15 @@ pub fn main() -> Nil {
     Error(e) -> io.println("write failed: " <> string.inspect(e))
   }
 
+  // Terse "now" digest for the primary spot — published at
+  // public/api/today.json for compact consumers. Always derived from PaG
+  // (first spot in spots_list) since that's the daily-ritual primary.
+  let today_json = build_primary_today(spot_entries)
+  case ingest.write_json(today_json, to: today_path) {
+    Ok(_) -> io.println("wrote " <> today_path)
+    Error(e) -> io.println("today write failed: " <> string.inspect(e))
+  }
+
   // SSR the wave-layer paths into index.html so first paint is correct
   // without JS. JS still mounts on top to animate. The template only
   // substitutes one set of {{WAVE_*_D}} placeholders, so the SSR uses
@@ -152,9 +164,20 @@ pub fn main() -> Nil {
 
 /// Container for one spot's per-fetch state plus the encoded JSON object
 /// that lands under `spots.<slug>` and the computed WaveLayers (kept around
-/// so PAG's layers can drive the SSR substitution).
+/// so PAG's layers can drive the SSR substitution). Also retains the raw
+/// per-spot source readings so the orchestrator can derive the terse
+/// `public/api/today.json` from the primary spot without re-fetching.
 type SpotEntry {
-  SpotEntry(slug: String, json: json.Json, wave_layers: wave_spec.WaveLayers)
+  SpotEntry(
+    spot: Spot,
+    buoy: Option(ndbc.BuoyReading),
+    tide: Option(noaa_tides.TideReading),
+    marine: Option(open_meteo_marine.MarineReading),
+    wind: Option(open_meteo_forecast.WindForecast),
+    slug: String,
+    json: json.Json,
+    wave_layers: wave_spec.WaveLayers,
+  )
 }
 
 fn build_spot_entry(
@@ -184,7 +207,38 @@ fn build_spot_entry(
   let spot_json =
     encode_spot_block(spot, buoy_opt, tide_opt, marine_opt, wind_opt)
 
-  SpotEntry(slug: spot.slug, json: spot_json, wave_layers:)
+  SpotEntry(
+    spot:,
+    buoy: buoy_opt,
+    tide: tide_opt,
+    marine: marine_opt,
+    wind: wind_opt,
+    slug: spot.slug,
+    json: spot_json,
+    wave_layers:,
+  )
+}
+
+/// Build the `today.json` payload for the primary spot (first in
+/// `spots_list`, conventionally PaG). Falls back to an empty JSON object
+/// if there are somehow no spots — the file is still written so consumers
+/// see a stable URL.
+fn build_primary_today(entries: List(SpotEntry)) -> json.Json {
+  case entries {
+    [first, ..] ->
+      today.build_today(
+        slug: first.spot.slug,
+        name: first.spot.name,
+        latitude: first.spot.latitude,
+        longitude: first.spot.longitude,
+        buoy: first.buoy,
+        tide: first.tide,
+        marine: first.marine,
+        wind: first.wind,
+        spot: first.spot.spot_config,
+      )
+    [] -> json.object([])
+  }
 }
 
 /// Pure encoder: given pre-fetched source readings + a spot config, produce

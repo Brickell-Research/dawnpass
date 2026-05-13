@@ -1,0 +1,5 @@
+---
+version: 2.0.0
+title: today pag without tide
+---
+{"generated_at_utc":"2026-05-04T12:00:00Z","spot":{"slug":"pag","name":"Pass-a-Grille","latitude":27.685,"longitude":-82.738},"wave_ft":1.968503937,"period_s":7.0,"wind_kt":5.83152,"wind_dir_deg":90,"tide":null,"score":{"overall":8.175925925925927,"rideable":true,"verdict":"go now"}}

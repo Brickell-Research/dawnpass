@@ -37,6 +37,25 @@ pub fn write_latest(
   |> result.map_error(WriteError)
 }
 
+/// Write any pre-encoded JSON value to disk. Creates intermediate
+/// directories. Used for derived static endpoints like
+/// `public/api/today.json` whose top-level shape is not a `(key, value)`
+/// blocks map.
+pub fn write_json(
+  value: json.Json,
+  to path: String,
+) -> Result(Nil, IngestError) {
+  let body = json.to_string(value)
+
+  use _ <- result.try(
+    simplifile.create_directory_all(filepath.directory_name(path))
+    |> result.map_error(WriteError),
+  )
+
+  simplifile.write(to: path, contents: body)
+  |> result.map_error(WriteError)
+}
+
 /// Render the three wave-layer SVG paths at phase=0 and substitute them
 /// into the index template, producing the deployed index.html.
 ///

@@ -50,7 +50,7 @@ pub fn build_block(
 
 // === Conditions builders ===
 
-fn build_now_conditions(
+pub fn build_now_conditions(
   now_iso: String,
   buoy: Option(BuoyReading),
   tide: Option(TideReading),
@@ -207,7 +207,7 @@ fn derive_tide_phase(tide: Option(TideReading)) -> Option(TidePhase) {
 
 // === "Now" timestamp picker ===
 
-fn pick_now_iso(
+pub fn pick_now_iso(
   buoy: Option(BuoyReading),
   tide: Option(TideReading),
   marine: Option(MarineReading),
