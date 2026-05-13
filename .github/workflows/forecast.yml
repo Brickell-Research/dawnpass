@@ -1,8 +1,9 @@
 name: forecast
 
-# Hourly refresh of public/data/latest.json AND public/index.html. Runs
-# `gleam run` to fetch NDBC + NOAA + Open-Meteo, writes the combined JSON,
-# and SSRs the wave-layer paths into index.html via wave_spec.render_path.
+# Hourly refresh of public/data/latest.json, public/api/today.json, AND
+# public/index.html. Runs `gleam run` to fetch NDBC + NOAA + Open-Meteo,
+# writes the combined JSON and the terse today digest, and SSRs the wave-
+# layer paths into index.html via wave_spec.render_path.
 # Commits any change back to main as `dawnpass-bot`. Vercel auto-deploys
 # on push.
 #
@@ -74,8 +75,8 @@ jobs:
         run: |
           git config user.name 'dawnpass-bot'
           git config user.email 'bot@brickellresearch.org'
-          mkdir -p public/data
-          git add public/data public/index.html
+          mkdir -p public/data public/api
+          git add public/data public/api public/index.html
           if git diff --cached --quiet; then
             echo "No changes to commit."
             exit 0
@@ -84,8 +85,9 @@ jobs:
           # Race-safe push: a human commit can land between checkout and push,
           # which makes the bot's main non-fast-forward and the push fails.
           # Rebase our refresh commit onto the new remote and retry. The bot
-          # only touches public/data and public/index.html, so conflicts are
-          # implausible — but if a rebase ever fails, abort and surface it.
+          # only touches public/data, public/api, and public/index.html, so
+          # conflicts are implausible — but if a rebase ever fails, abort and
+          # surface it.
           for attempt in 1 2 3; do
             if git push origin main; then
               echo "Pushed on attempt $attempt"
