@@ -29,8 +29,7 @@ import gleam/string
 // as a calendar tuple; we format to ISO 8601 for compatibility with the
 // rest of the timestamp pipeline.
 @external(erlang, "calendar", "universal_time")
-fn calendar_universal_time() ->
-  #(#(Int, Int, Int), #(Int, Int, Int))
+fn calendar_universal_time() -> #(#(Int, Int, Int), #(Int, Int, Int))
 
 fn now_utc_iso() -> String {
   let #(#(y, m, d), #(h, mi, s)) = calendar_universal_time()
