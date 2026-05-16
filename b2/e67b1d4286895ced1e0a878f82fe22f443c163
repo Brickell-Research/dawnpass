@@ -1,0 +1,19 @@
+src/dawnpass/sources/noaa_tides.gleam
+  s_51f4563efcc586::t_378cc07d064697 32
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "b2e67b1d4286895ced1e0a878f82fe22f443c163",
+  "prompts": {},
+  "sessions": {
+    "s_51f4563efcc586": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c22384f4-27e7-443b-85b4-22ac7af7598c",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "robertDurst <me@robdurst.com>"
+    }
+  }
+}
