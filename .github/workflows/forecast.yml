@@ -34,6 +34,10 @@ jobs:
   refresh:
     runs-on: ubuntu-latest
     steps:
+      - name: Start timer
+        id: timer
+        run: echo "start=$(date +%s)" >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@v4
         with:
           token: ${{ secrets.GH_TOKEN_ACTION }}
@@ -72,6 +76,7 @@ jobs:
       - run: gleam run
 
       - name: Commit refresh
+        id: commit
         run: |
           git config user.name 'dawnpass-bot'
           git config user.email 'bot@brickellresearch.org'
@@ -79,8 +84,10 @@ jobs:
           git add public/data public/api public/index.html
           if git diff --cached --quiet; then
             echo "No changes to commit."
+            echo "committed=0" >> "$GITHUB_OUTPUT"
             exit 0
           fi
+          echo "committed=1" >> "$GITHUB_OUTPUT"
           git commit -m "refresh: $(date -u +%FT%H:%MZ)"
           # Race-safe push: a human commit can land between checkout and push,
           # which makes the bot's main non-fast-forward and the push fails.
@@ -98,3 +105,52 @@ jobs:
           done
           echo "Failed to push refresh after 3 attempts"
           exit 1
+
+      # Always emit metrics, even on failure — otherwise the only runs we see
+      # in Datadog are successful ones, and a stalled cron looks identical to
+      # "no recent data". DD_API_KEY is a repo secret; if it's missing the step
+      # no-ops so this workflow keeps working without DD configured.
+      - name: Push metrics to Datadog
+        if: always()
+        env:
+          DD_API_KEY: ${{ secrets.DD_API_KEY }}
+        run: |
+          if [ -z "$DD_API_KEY" ]; then
+            echo "DD_API_KEY not set; skipping Datadog push."
+            exit 0
+          fi
+          now=$(date +%s)
+          duration=$(( now - ${{ steps.timer.outputs.start }} ))
+          status='${{ job.status }}'
+          committed='${{ steps.commit.outputs.committed }}'
+          # Outcomes: committed (success + pushed), noop (success, no changes),
+          # failure (any step failed), cancelled (manual / timeout).
+          case "$status" in
+            success) [ "$committed" = "1" ] && outcome=committed || outcome=noop ;;
+            failure) outcome=failure ;;
+            cancelled) outcome=cancelled ;;
+            *) outcome="$status" ;;
+          esac
+          echo "metrics: duration=${duration}s outcome=${outcome} committed=${committed:-0}"
+          # v2/series payload. type 1 = count, 3 = gauge. Count metrics need
+          # `interval` (seconds) so DD knows the rate window — 1800 matches the
+          # 30-min cron cadence.
+          payload=$(cat <<JSON
+          {"series":[
+            {"metric":"dawnpass.refresh.duration_seconds","type":3,
+             "points":[{"timestamp":${now},"value":${duration}}],
+             "tags":["service:dawnpass","workflow:forecast","outcome:${outcome}"]},
+            {"metric":"dawnpass.refresh.run","type":1,"interval":1800,
+             "points":[{"timestamp":${now},"value":1}],
+             "tags":["service:dawnpass","workflow:forecast","outcome:${outcome}"]},
+            {"metric":"dawnpass.refresh.committed","type":3,
+             "points":[{"timestamp":${now},"value":${committed:-0}}],
+             "tags":["service:dawnpass","workflow:forecast"]}
+          ]}
+          JSON
+          )
+          curl -sS --fail-with-body -X POST \
+            "https://api.datadoghq.com/api/v2/series" \
+            -H "Content-Type: application/json" \
+            -H "DD-API-KEY: $DD_API_KEY" \
+            -d "$payload"
