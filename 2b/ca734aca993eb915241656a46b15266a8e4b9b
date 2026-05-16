@@ -1,0 +1,21 @@
+.github/workflows/forecast.yml
+  s_51f4563efcc586::t_cca6cb4de5aab7 79,87,90
+  s_51f4563efcc586::t_686557af6b88c7 108-156
+  s_51f4563efcc586::t_289f33a12fd829 37-40
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "2bca734aca993eb915241656a46b15266a8e4b9b",
+  "prompts": {},
+  "sessions": {
+    "s_51f4563efcc586": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c22384f4-27e7-443b-85b4-22ac7af7598c",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "robertDurst <me@robdurst.com>"
+    }
+  }
+}
