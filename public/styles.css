@@ -10,7 +10,10 @@ body {
   flex-direction: column;
   max-width: 60rem;
   margin: 0 auto;
-  padding: 2rem;
+  padding-top: max(2rem, env(safe-area-inset-top));
+  padding-right: max(2rem, env(safe-area-inset-right));
+  padding-bottom: max(2rem, env(safe-area-inset-bottom));
+  padding-left: max(2rem, env(safe-area-inset-left));
 }
 
 main { flex: 1; }

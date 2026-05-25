@@ -5,7 +5,7 @@
 // beach check still shows the last forecast. Bump CACHE_VERSION
 // whenever a shell asset changes to evict the old cache on activate.
 
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const CACHE_NAME = `dawnpass-${CACHE_VERSION}`;
 
 const SHELL_ASSETS = [
